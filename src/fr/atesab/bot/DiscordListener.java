@@ -36,7 +36,6 @@ import sx.blah.discord.handle.impl.events.guild.voice.user.UserVoiceChannelMoveE
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IGuild;
 import sx.blah.discord.handle.obj.IMessage;
-import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 import sx.blah.discord.handle.obj.Permissions;
 import sx.blah.discord.handle.obj.StatusType;
@@ -77,14 +76,6 @@ public class DiscordListener {
 	public static final String SHOW_TRACK_PLAY_APP = "showtrackplay";
 	public static final String DEFAULT_COMMAND_PREFIX = "!";
 
-	public static String getReplaceText(String s) {
-		return s.replace("[\u00E9\u00E8\u00EA\u00EB\u0119\u0117\u0113]", "e")
-				.replace("[\u00E0\u00E2\u00E1\u00E4\u00E3\u00E5\u0101\u00AA]", "a").replace("\u00FF", "y")
-				.replace("\u00E6", "ae").replace("\u0153", "oe").replace("[\u016B\u00FA\u00FC\u00F9\u00FB]", "u")
-				.replace("[\u012B\u012F\u00ED\u00EC\u00EF\u00EE]", "i")
-				.replace("[\u00BA\u014D\u00F8\u00F5\u00F3\u00F2\u00F6\u00F4]", "o");
-	}
-
 	private BotInstance botInstance;
 	public final AudioPlayerManager playerManager;
 	private Map<Long, AudioProvider> audioPlayers = new HashMap<Long, AudioProvider>();
@@ -116,96 +107,55 @@ public class DiscordListener {
 	@EventSubscriber
 	public void onMessageReceivedEvent(MessageReceivedEvent event) {
 		tryCommand(() -> {
+			/*
+			 * Load configs
+			 */
 			ServerConfig config = null;
 			if (event.getGuild() != null)
 				config = botInstance.getServerConfigById(event.getGuild().getLongID());
 			String commandPrefix = config != null ? config.commandPrefix : DEFAULT_COMMAND_PREFIX;
+
 			IMessage m = event.getMessage();
 			String message = m.getContent();
 			List<Answer> ans = new ArrayList<Answer>();
-			if (message.startsWith(commandPrefix)) {
-				if ((config != null && config.tools.contains(USE_COMMAND_APP)) || config == null) {
-					message = message.substring(commandPrefix.length());
-					String[] els = message.split(" ");
+			/*
+			 * Run commands
+			 */
+			if (message.startsWith(commandPrefix)
+					&& ((config != null && config.tools.contains(USE_COMMAND_APP)) || config == null)) {
+				message = message.substring(commandPrefix.length());
+				String[] els = message.split(" ");
+				Command cmd = botInstance.getServer().getCommandByName(els[0]);
+				if (cmd != null) {
 					String[] args = new String[els.length - 1];
-					Command cmd = botInstance.getServer().getCommandByName(els[0]);
-					if (cmd != null) {
-						System.arraycopy(els, 1, args, 0, args.length);
-						if (botInstance.getServer().userHasPerm(event.getAuthor(), event.getGuild(),
-								cmd.neededPermission(), botInstance)) {
-							try {
-								if (!cmd.runCommand(event, args, message, config, botInstance))
-									event.getChannel().sendMessage(commandPrefix + cmd.getUsage());
-							} catch (MissingPermissionsException e) {
-								String s = "";
-								for (Permissions p : e.getMissingPermissions())
-									s += (s.isEmpty() ? "" : ", ")
-											+ botInstance.getServer().getLanguage("tools.guildmod.perm." + p.name());
-								event.getChannel()
-										.sendMessage(botInstance.getServer().getLanguage("needperm", s) + ".");
-							} catch (IllegalArgumentException e) {
-								event.getChannel().sendMessage("IllegalArgumentException: " + e.getMessage() + ".");
-								return;
-							}
-						} else
-							ans.add(new Answer(botInstance.getServer().getLanguage("noperm")));
-					}
+					System.arraycopy(els, 1, args, 0, args.length); // create args values
+
+					// check if user has permission
+					if (botInstance.getServer().userHasPerm(event.getAuthor(), event.getGuild(), cmd.neededPermission(),
+							botInstance)) {
+						if (!cmd.runCommand(event, args, message, config, botInstance))
+							event.getChannel().sendMessage(commandPrefix + cmd.getUsage());
+					} else
+						ans.add(new Answer(botInstance.getServer().getLanguage("noperm")));
 				}
 			} else {
 				message = m.getFormattedContent();
 				if (config != null) {
+					/*
+					 * Auto-delete message
+					 */
 					if (config.tools.contains(AutoDeleteMessageHandler.getInstance().toolName()))
-						for (MessageElement msg : config.deleteMessages) {
-							boolean a = false;
-							for (String component : msg.question.split("::")) {
-								switch (msg.type) {
-								case equals:
-									a = getReplaceText(message).equalsIgnoreCase(getReplaceText(component));
-									break;
-								case contain:
-									a = getReplaceText(message.toLowerCase())
-											.contains(getReplaceText(component.toLowerCase()));
-									break;
-								case startWith:
-									a = getReplaceText(message.toLowerCase())
-											.startsWith(getReplaceText(component.toLowerCase()));
-									break;
-								case regex:
-									a = getReplaceText(message.toLowerCase())
-											.matches(getReplaceText(component.toLowerCase()));
-									break;
-								}
-								if (a) {
-									event.getMessage().delete();
-									return;
-								}
+						for (MessageElement msg : config.deleteMessages)
+							if (msg.match(message)) {
+								event.getMessage().delete();
+								return;
 							}
-						}
+					/*
+					 * Auto-message
+					 */
 					if (config.tools.contains(AutoMessageHandler.getInstance().toolName()))
-						for (MessageElement msg : config.messages) {
-							boolean a = false;
-							for (String component : msg.question.split("::")) {
-								switch (msg.type) {
-								case equals:
-									a = getReplaceText(message).equalsIgnoreCase(getReplaceText(component));
-									break;
-								case contain:
-									a = getReplaceText(message.toLowerCase())
-											.contains(getReplaceText(component.toLowerCase()));
-									break;
-								case startWith:
-									a = getReplaceText(message.toLowerCase())
-											.startsWith(getReplaceText(component.toLowerCase()));
-									break;
-								case regex:
-									a = getReplaceText(message.toLowerCase())
-											.matches(getReplaceText(component.toLowerCase()));
-									break;
-								}
-								if (a)
-									break;
-							}
-							if (a) {
+						for (MessageElement msg : config.messages)
+							if (msg.match(message)) {
 								String[] answer = msg.answer.split("::");
 								String aswr = answer.length != 0 ? answer[new Random().nextInt(answer.length)] : "";
 								String[] file = msg.file.split("::");
@@ -216,30 +166,33 @@ public class DiscordListener {
 								else
 									ans.add(new Answer(aswr));
 							}
-						}
 				}
+				/*
+				 * Run games
+				 */
 				GameInstance<?> instance = this.botInstance.getGameInstanceByPlayer(event.getAuthor());
 				if (instance != null) {
-					int turn = instance.getTurn();
-					IUser p = instance.getUsers()[turn];
-					if (p.getLongID() == event.getAuthor().getLongID()) {
+					if (message.equalsIgnoreCase("stop")) {
+						botInstance.endGame(instance, event.getChannel());
+						event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.stopgame"));
+					} else {
 						int w;
-						if ((w = instance.evaluateGame(event.getChannel(), turn, message.split(" "))) != 0) {
-							event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.win",
-									instance.getUsers()[w - 1].mention()));
-							instance.setEnded();
-							this.botInstance.getGameInstances().remove(instance);
+						if ((w = instance.evaluateGame(event.getChannel(), event.getAuthor(), message.split(" "))
+								- 1) != -1) {
+							if (w == -2) {
+								event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.mat"));
+							} else if (w >= 0 && w < instance.getUsers().length)
+								event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.win",
+										instance.getUsers()[w].mention()));
+							botInstance.endGame(instance, event.getChannel(), w);
 						}
-					} else
-						event.getChannel()
-								.sendMessage(botInstance.getServer().getLanguage("game.badturn", p.mention()));
+					}
 				}
 			}
-			if (ans.size() > 0) {
-				for (Answer a : ans)
-					a.answer(event);
-			}
+			if (ans.size() > 0)
+				botInstance.sendAnswers(event, ans.stream().toArray(Answer[]::new));
 		}, event.getChannel());
+
 	}
 
 	@EventSubscriber
@@ -334,8 +287,8 @@ public class DiscordListener {
 		} catch (Exception e) {
 			if (!(e instanceof DiscordException))
 				channel.sendMessage(e.getClass().getSimpleName() + ": " + e.getMessage() + ".");
-			if (!(e instanceof IllegalArgumentException))
-				e.printStackTrace();
+			// if (!(e instanceof IllegalArgumentException))
+			e.printStackTrace();
 
 		}
 	}

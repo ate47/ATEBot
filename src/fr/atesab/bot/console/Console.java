@@ -9,6 +9,7 @@ import java.util.Scanner;
 import fr.atesab.bot.BotServer;
 import fr.atesab.bot.console.command.AccountListConsoleCommand;
 import fr.atesab.bot.console.command.AddPermConsoleCommand;
+import fr.atesab.bot.console.command.BotListConsoleCommand;
 import fr.atesab.bot.console.command.ChangePasswordConsoleCommand;
 import fr.atesab.bot.console.command.HelpConsoleCommand;
 import fr.atesab.bot.console.command.RemovePermConsoleCommand;
@@ -37,11 +38,13 @@ public class Console extends Thread {
 		commands.add(new AddPermConsoleCommand());
 		commands.add(new RemovePermConsoleCommand());
 		commands.add(new AccountListConsoleCommand());
+		commands.add(new BotListConsoleCommand());
 	}
 
 	public ConsoleCommand getCommandByName(String name) {
-		for (ConsoleCommand cmd: commands)
-			if(cmd.getName().equalsIgnoreCase(name)) return cmd;
+		for (ConsoleCommand cmd : commands)
+			if (cmd.getName().equalsIgnoreCase(name))
+				return cmd;
 		return null;
 	}
 
@@ -56,7 +59,7 @@ public class Console extends Thread {
 	public PrintStream getOutputStream() {
 		return out;
 	}
-	
+
 	public BotServer getServer() {
 		return server;
 	}
@@ -68,13 +71,15 @@ public class Console extends Thread {
 			String line = scanner.nextLine();
 			String[] cmd = line.split(" ", 2);
 			ConsoleCommand cc = getCommandByName(cmd[0]);
-			if(cc!=null) {
-				if(!cc.execute(this, cmd.length==2?cmd[1].split(" "):new String[] {}))
+			if (cc != null) {
+				if (!cc.execute(this, cmd.length == 2 ? cmd[1].split(" ") : new String[] {}))
 					out.print(cc.getUsage());
-			} else out.println("Unknow command");
+			} else
+				out.println("Unknow command");
 		}
-		scanner.close();		
+		scanner.close();
 	}
+
 	public void setCommands(List<ConsoleCommand> commands) {
 		this.commands = commands;
 	}

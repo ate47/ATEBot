@@ -47,8 +47,8 @@ public class HugCommand extends Command {
 		long bid = botInstance.getClient().getOurUser().getLongID();
 		LinkedList<IUser> users = new LinkedList<>();
 		for (int i = 0; i < args.length; i++) {
-			args[i] = args[i].replaceAll("<@[&]([0-9]+){1}>", "r:$2")
-					.replaceAll("<@[!]?([0-9]+){1}>", "$2");
+			args[i] = args[i].replaceAll("<@[&]([0-9]+){1}>", "r:$1")
+					.replaceAll("<@[!]?([0-9]+){1}>", "$1");
 			try {
 				if(args[i].startsWith("r:")) {
 					IRole r = event.getClient().getRoleByID(Long.valueOf(args[i].substring(2)));

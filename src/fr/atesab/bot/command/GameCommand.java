@@ -1,6 +1,8 @@
 package fr.atesab.bot.command;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import fr.atesab.bot.BotInstance;
 import fr.atesab.bot.ServerConfig;
@@ -23,7 +25,7 @@ public class GameCommand extends Command {
 
 	@Override
 	public String getUsage() {
-		return getName() + " <stop|game> [players...]";
+		return getName() + " <stop|game|list> [players...]";
 	}
 
 	@Override
@@ -39,23 +41,52 @@ public class GameCommand extends Command {
 		GameInstance<?> gi = botInstance.getGameInstanceByPlayer(event.getAuthor());
 		if (gi != null && gi.isEnded()) {
 			if (args[0].equalsIgnoreCase("stop")) {
-				botInstance.getGameInstances().remove(gi);
-				gi.setEnded();
+				botInstance.endGame(gi, event.getChannel());
 				event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.stopgame"));
 			} else
 				event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.inagame"));
 		} else {
-			Game g = botInstance.getServer().getGameByName(args[0]);
-			if (g != null) {
-				List<IUser> mentions = event.getMessage().getMentions();
-				if (mentions.size() == g.neededPlayer()) {
-					botInstance.getGameInstances()
-							.add(g.getInstance(botInstance.getServer(), mentions.toArray(new IUser[mentions.size()])));
+			if (gi != null)
+				botInstance.endGame(gi, event.getChannel());
+			if (args[0].equalsIgnoreCase("list")) {
+				botInstance.sendMessage(event.getChannel(), getGameList(botInstance));
+			} else if (args[0].equalsIgnoreCase("instances")) {
+				List<GameInstance<?>> instances = botInstance.getGameInstances();
+				event.getChannel()
+						.sendMessage(botInstance.getServer().getLanguage("cmd.game.instances") + ":\n"
+								+ (instances.isEmpty() ? botInstance.getServer().getLanguage("cmd.game.instances.empty")
+										: instances.stream().map(GameInstance::toString)
+												.collect(Collectors.joining("\n-", "- ", ""))));
+			} else {
+				Game g = botInstance.getServer().getGameByName(args[0]);
+				if (g != null) {
+					if (args[1].equalsIgnoreCase("instances")) {
+						List<GameInstance<Game>> instances = botInstance.getGameInstanceByGame(g);
+						event.getChannel().sendMessage(botInstance.getServer().getLanguage("cmd.game.instances") + ":\n"
+								+ (instances.isEmpty() ? botInstance.getServer().getLanguage("cmd.game.instances.empty")
+										: instances.stream().map(GameInstance::toString)
+												.collect(Collectors.joining("\n-", "- ", ""))));
+					} else {
+						List<IUser> mentions = new ArrayList<>(event.getMessage().getMentions());
+						if (mentions.size() < g.neededPlayer())
+							mentions.add(event.getAuthor()); // add the author if there isn't enough players
+						if (
+						// check if player count is between Game#neededPlayer and Game#maxPlayer (finite
+						// players size)
+						(g.maxPlayer() != -1 && mentions.size() <= g.maxPlayer() && mentions.size() >= g.neededPlayer())
+								// check if player count is greater than Game#neededPlayer (Infinite players
+								// size)
+								|| (g.maxPlayer() == -1 && mentions.size() <= g.neededPlayer())) {
+							GameInstance<?> gameInstance = g.getInstance(botInstance.getServer(),
+									mentions.toArray(new IUser[mentions.size()]));
+							botInstance.startGame(gameInstance, event.getChannel());
+						} else
+							event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.badnumber",
+									g.neededPlayer() + (g.neededPlayer() != -1 ? "" : ("-" + g.maxPlayer()))));
+					}
 				} else
-					event.getChannel()
-							.sendMessage(botInstance.getServer().getLanguage("game.badnumber", g.neededPlayer()));
-			} else
-				event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.nag"));
+					event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.nag"));
+			}
 		}
 		return true;
 	}

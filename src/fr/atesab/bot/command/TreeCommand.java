@@ -3,12 +3,7 @@ package fr.atesab.bot.command;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -18,10 +13,7 @@ import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.imageio.ImageIO;
-
 import fr.atesab.bot.BotInstance;
-import fr.atesab.bot.BotServer;
 import fr.atesab.bot.ServerConfig;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
 import sx.blah.discord.handle.obj.IGuild;
@@ -29,7 +21,6 @@ import sx.blah.discord.handle.obj.IRole;
 import sx.blah.discord.handle.obj.IUser;
 
 public class TreeCommand extends ASyncCommand {
-	private static final Color DISCORD_DARK_COLOR = new Color(54, 57, 62);
 
 	class Node {
 		IUser root;
@@ -39,7 +30,7 @@ public class TreeCommand extends ASyncCommand {
 			this.root = root;
 			this.subs = new ArrayList<>();
 		}
-		
+
 		@Override
 		public String toString() {
 			return "Node [root=" + root + ", subs=" + subs + ", size()=" + size() + ", deep()=" + deep() + ", length()="
@@ -72,18 +63,6 @@ public class TreeCommand extends ASyncCommand {
 			}
 		}
 
-		BufferedImage getIconImage() throws MalformedURLException, IOException {
-			if (root == null)
-				return null;
-			URL url = new URL(root.getAvatarURL().toLowerCase().endsWith("null.png")
-					? "https://discordapp.com/assets/0e291f67c9274a1abdddeb3fd919cbaa.png"
-					: root.getAvatarURL().replaceAll("[.]webp", ".png"));
-			URLConnection connection = url.openConnection();
-			connection.setRequestProperty("User-Agent", BotServer.BOT_NAME + "/" + BotServer.BOT_VERSION);
-			connection.connect();
-			return ImageIO.read(connection.getInputStream());
-		}
-
 		void draw(Graphics2D graphics, int offsetX, int offsetY) {
 			int length = length();
 			draw(graphics, offsetX, offsetY, length, offsetX + ((length - 1) * 10 + 80 * length) / 2 - 40, offsetY);
@@ -92,7 +71,7 @@ public class TreeCommand extends ASyncCommand {
 		protected void draw(Graphics2D graphics, int offsetX, int offsetY, int length, int rootX, int rootY) {
 			BufferedImage rootImage = null;
 			try {
-				rootImage = getIconImage();
+				rootImage = Command.getAvatarImage(root);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -118,10 +97,6 @@ public class TreeCommand extends ASyncCommand {
 			}
 		}
 
-		void drawCenteredString(String str, int posX, int posY, Graphics2D graphics) {
-			int len = graphics.getFontMetrics().stringWidth(str);
-			graphics.drawString(str, posX - len / 2, posY);
-		}
 	}
 
 	private static List<IRole> rolesFromId(IGuild guild, Enumeration<Long> roles) {
@@ -189,15 +164,12 @@ public class TreeCommand extends ASyncCommand {
 		graphic.drawString(event.getGuild().getName(), 20, 20);
 		tree.draw(graphic, 20, 20);
 
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		try {
-			ImageIO.write(buffImg, "png", outputStream);
+			event.getChannel().sendFile(botInstance.getServer().getLanguage("cmd.tree"), streamFromImage(buffImg),
+					"tree.png");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		event.getChannel().sendFile(
-				botInstance.getServer().getLanguage("cmd.tree"),
-				new ByteArrayInputStream(outputStream.toByteArray()), "tree.png");
 		return true;
 	}
 

@@ -1,7 +1,8 @@
 package fr.atesab.bot.console.command;
 
+import java.util.stream.Collectors;
+
 import fr.atesab.bot.Account;
-import fr.atesab.bot.BotServer;
 import fr.atesab.bot.console.Console;
 import fr.atesab.bot.console.ConsoleCommand;
 
@@ -10,8 +11,9 @@ public class AccountListConsoleCommand extends ConsoleCommand {
 	@Override
 	public boolean execute(Console console, String[] args) {
 		String s = "Accounts:";
-		for (Account acc: console.getServer().getAccounts())
-			s+="\n- "+acc.name+" - "+(acc.isAdmin()?"Admin":(BotServer.listWriter(acc.perms, "%s ")));
+		for (Account acc : console.getServer().getAccounts())
+			s += "\n- " + acc.name + " - "
+					+ (acc.isAdmin() ? "Admin" : (acc.perms.stream().collect(Collectors.joining(" "))));
 		console.getOutputStream().println(s);
 		return true;
 	}
@@ -25,6 +27,7 @@ public class AccountListConsoleCommand extends ConsoleCommand {
 	public String getName() {
 		return "al";
 	}
+
 	@Override
 	public String getUsage() {
 		return getName();

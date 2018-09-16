@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 import fr.atesab.bot.BotInstance;
-import fr.atesab.bot.BotServer;
 import fr.atesab.bot.ServerConfig;
 import fr.atesab.bot.utils.CollectorImpl;
 import sx.blah.discord.handle.impl.events.guild.channel.message.MessageReceivedEvent;
@@ -105,6 +104,9 @@ public class OlderCommand extends ASyncCommand {
 						buffer.append(next);
 					} else {
 						event.getChannel().sendMessage(buffer.toString());
+						try {
+							Thread.sleep(500);
+						} catch (InterruptedException e) { }
 						buffer.setLength(0);
 						buffer.append(next);
 					}
@@ -122,15 +124,5 @@ public class OlderCommand extends ASyncCommand {
 	@Override
 	public String neededPermission() {
 		return "savemessage";
-	}
-
-	private static String getTime(long time) {
-		return time < 1000 ? time + "ms"
-				: ((time < 10000) ? BotServer.significantNumbers((time / 1000D), 3) + "s"
-						: ((time < 60000) ? (time / 1000) + "s"
-								: ((time < 600000) ? BotServer.significantNumbers(((time / 1000) / 60D), 3) + "min"
-										: ((time < 36000000)
-												? BotServer.significantNumbers(((time / 60000) / 60D), 3) + "min"
-												: (time / 3600000) + "h"))));
 	}
 }

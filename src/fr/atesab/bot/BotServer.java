@@ -7,11 +7,12 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.io.output.FileWriterWithEncoding;
 
@@ -25,7 +26,10 @@ import fr.atesab.bot.ServerConfig;
 import fr.atesab.bot.command.*;
 import fr.atesab.bot.console.Console;
 import fr.atesab.bot.game.Game;
-import fr.atesab.bot.game.TicTacToe;
+import fr.atesab.bot.game.HangmanGame;
+import fr.atesab.bot.game.MarienbadGame;
+import fr.atesab.bot.game.NumberFindGame;
+import fr.atesab.bot.game.TicTacToeGame;
 import fr.atesab.bot.handler.*;
 import fr.atesab.bot.handler.tools.*;
 import fr.atesab.bot.utils.AudioProvider;
@@ -53,37 +57,34 @@ import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 
 public class BotServer {
-	public static interface StringPattern {
-		public String getPattern(String string);
-	}
-
-	public static final String BOT_VERSION = "1.5.2";
+	public static final String BOT_VERSION = "1.5.4";
 	public static final String BOT_AUTHOR = "ATE47";
 	public static final String BOT_NAME = "ATEDiBot";
 
 	public static final String[] APPS = { DiscordListener.USE_COMMAND_APP, DiscordListener.SHOW_USER_JOIN_APP,
 			DiscordListener.SHOW_USER_LEAVE_APP, DiscordListener.SHOW_TRACK_PLAY_APP };
-	public static final Permission[] perms = { new Permission("config", "panel"), new Permission("config", "panel"),
-			new Permission("users", "panel"), new Permission("perm", "panel"), new Permission("blog", "panel"),
-			new Permission("webconfig", "panel"), new Permission("app", "panel"), new Permission("works", "panel"),
-			new Permission("info", "panel"),
-
+	public static final Permission[] perms = {
+			// PANEL
+			new Permission("config", "panel"), new Permission("config", "panel"), new Permission("users", "panel"),
+			new Permission("perm", "panel"), new Permission("blog", "panel"), new Permission("webconfig", "panel"),
+			new Permission("app", "panel"), new Permission("works", "panel"), new Permission("info", "panel"),
+			new Permission("ignorebotaccess", "panel"), new Permission("ignoreserveraccess", "panel"),
+			// TOOLS
 			new Permission("tools", "tools"), new Permission("createbot", "tools", true),
 			new Permission("deletebot", "tools"), new Permission("automessage", "tools", true),
 			new Permission("deleteauto", "tools", true), new Permission("configserver", "tools", true),
 			new Permission("cmdlist", "tools"), new Permission("files", "tools"),
 			new Permission("messagetool", "tools", true), new Permission("localperm", "tools"),
-
-			new Permission("game", "command"), new Permission("sond", "command"), new Permission("msgmod", "command"),
-			new Permission("bot", "command"), new Permission("manageclients", "command"),
-			new Permission("msg", "command"), new Permission("maths", "command"), new Permission("advmaths", "command"),
+			// COMANDS
+			new Permission("game", "command"), new Permission("party", "command"), new Permission("sond", "command"),
+			new Permission("msgmod", "command"), new Permission("bot", "command"),
+			new Permission("manageclients", "command"), new Permission("msg", "command"),
+			new Permission("maths", "command"), new Permission("advmaths", "command"),
 			new Permission("info", "command"), new Permission("audio", "command"),
 			new Permission("savemessage", "command"), new Permission("tree", "command"),
-
+			// GUILD
 			new Permission("audiogest", "guild"), new Permission("guildmod", "guild"),
-
-			new Permission("ignorebotaccess", "panel"), new Permission("ignoreserveraccess", "panel"),
-
+			// API
 			new Permission("automessagev", "api"), new Permission("deleteautov", "api") };
 
 	public static File createDir(String folder) {
@@ -91,22 +92,6 @@ public class BotServer {
 		if (!(d.exists() && d.isDirectory()))
 			d.mkdirs();
 		return d;
-	}
-
-	public static String listWriter(Iterable<String> iterable, String pattern) {
-		String s = "";
-		for (String str : iterable) {
-			s += pattern.replaceAll("%s", str);
-		}
-		return s;
-	}
-
-	public static String listWriter(Iterable<String> iterable, StringPattern sp) {
-		String s = "";
-		for (String str : iterable) {
-			s += sp.getPattern(str);
-		}
-		return s;
 	}
 
 	public static boolean mapContainKeys(Map<String, Object> map, String[] keys) {
@@ -210,9 +195,10 @@ public class BotServer {
 
 	private List<Command> commands = new ArrayList<Command>();
 
-	private List<Game> games = new ArrayList<Game>();
+	private Set<Game> games = new HashSet<Game>();
 
 	public BotServer(int webPort, int apiPort, int webNumThreads, String configFolder) {
+		System.setProperty("file.encoding", "UTF-8");
 		this.webPort = webPort;
 		this.apiPort = apiPort;
 		this.webNumThreads = webNumThreads;
@@ -231,14 +217,17 @@ public class BotServer {
 		nfoMessage = new InformationMessage("", lang.getLanguage("webconfig.info.default.title"),
 				lang.getLanguage("webconfig.info.default.text"));
 
-		// REGISTER COMMAND
+		// REGISTER COMMANDS
 		registerCommand(new DecompoCommand(), new FactCommand(), new InformationCommand(), new KickCommand(),
 				new ConnectCommand(), new APlayCommand(), new DisconnectCommand(), new TitleCommand(), new SayCommand(),
 				new GCDCommand(), new NameCommand(), new SaveHistoryCommand(), new SondageCommand(),
 				new UploadCommand(this), new InfoCommand(), new HugCommand(this), new PolynomialCommand(),
 				new RandomCommand(), new EditMessageCommand(), new EvaluateCommand(), new GameCommand(),
-				new SetPrefixCommand(), new TreeCommand(), new OlderCommand(), new HelpCommand());
-		registerGame(new TicTacToe());
+				new SetPrefixCommand(), new TreeCommand(), new OlderCommand(), new HelpCommand(), new PartyCommand());
+
+		// REGISTER GAMES
+		registerGame(new TicTacToeGame(false), new TicTacToeGame(true), new NumberFindGame(50000), new MarienbadGame(),
+				new HangmanGame());
 
 		servlet = new BotServlet(this, new LoginHandler("logo.png"), new PanelHandler(), "/bot");
 		servlet.registerContext("users.ap", new AccountsPanelHandler());
@@ -266,9 +255,9 @@ public class BotServer {
 		webServlet.registerContext("works.ap", new WorksHandler());
 		webServlet.registerContext("help.ap", new InfoHandler());
 		webServlet.registerContext("user.ap", new UserInfoHandler());
-		
+
 		loadConfig();
-		
+
 		webServer = new Server(this.webPort, this.webNumThreads, webServlet);
 
 		webServer.start();
@@ -375,7 +364,8 @@ public class BotServer {
 		eo.color = Integer.valueOf(panelColor.substring(1, 3), 16) * 256 * 256
 				+ Integer.valueOf(panelColor.substring(3, 5), 16) * 256
 				+ Integer.valueOf(panelColor.substring(5, 7), 16);
-		eo.author = new AuthorObject(author.getName(), null, author.getAvatarURL(), author.getAvatarURL());
+		String url = Command.getAvatarURL(author);
+		eo.author = new AuthorObject(author.getName(), null, url, url);
 		eo.title = title;
 		eo.description = description;
 		return eo;
@@ -389,7 +379,7 @@ public class BotServer {
 		return null;
 	}
 
-	public List<Game> getGames() {
+	public Set<Game> getGames() {
 		return games;
 	}
 
@@ -525,21 +515,14 @@ public class BotServer {
 
 	public void registerCommand(Command... cmds) {
 		for (Command cmd : cmds) {
-			if (!commands.contains(cmd))
-				commands.add(cmd);
+			commands.add(cmd);
 		}
-		commands.sort(new Comparator<Command>() {
-			public int compare(Command o1, Command o2) {
-				return o1.getName().toLowerCase().compareTo(o2.getName().toLowerCase());
-			}
-		});
+		commands.sort((o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName()));
 	}
 
 	public void registerGame(Game... gams) {
-		for (Game game : gams) {
-			if (!games.contains(game))
-				games.add(game);
-		}
+		for (Game game : gams)
+			games.add(game);
 	}
 
 	public void removeSession(String sessid) {
@@ -635,11 +618,8 @@ public class BotServer {
 			return true;
 		String userid = String.valueOf(user.getLongID());
 		ArrayList<String> rolesid = new ArrayList<>();
-		if (guild != null) {
-			for (IRole r : user.getRolesForGuild(guild)) {
-				rolesid.add(String.valueOf(r.getLongID()));
-			}
-		}
+		if (guild != null)
+			user.getRolesForGuild(guild).forEach(r -> rolesid.add(String.valueOf(r.getLongID())));
 		if (botInstance != null && guild != null) {
 			ServerConfig serverConfig = botInstance.getServerConfigById(guild.getLongID());
 			if (serverConfig != null) {
