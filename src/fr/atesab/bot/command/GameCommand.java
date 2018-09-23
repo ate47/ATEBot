@@ -49,10 +49,10 @@ public class GameCommand extends Command {
 			if (gi != null)
 				botInstance.endGame(gi, event.getChannel());
 			if (args[0].equalsIgnoreCase("list")) {
-				botInstance.sendMessage(event.getChannel(), getGameList(botInstance));
+				BotInstance.sendMessage(event.getChannel(), getGameList(botInstance));
 			} else if (args[0].equalsIgnoreCase("instances")) {
 				List<GameInstance<?>> instances = botInstance.getGameInstances();
-				botInstance.sendMessage(event.getChannel(),
+				BotInstance.sendMessage(event.getChannel(),
 						botInstance.getServer().getLanguage("cmd.game.instances") + ":\n"
 								+ (instances.isEmpty() ? botInstance.getServer().getLanguage("cmd.game.instances.empty")
 										: instances.stream().map(GameInstance::toString)
@@ -62,7 +62,7 @@ public class GameCommand extends Command {
 				if (g != null) {
 					if (args[1].equalsIgnoreCase("instances")) {
 						List<GameInstance<Game>> instances = botInstance.getGameInstanceByGame(g);
-						botInstance.sendMessage(event.getChannel(), botInstance.getServer()
+						BotInstance.sendMessage(event.getChannel(), botInstance.getServer()
 								.getLanguage("cmd.game.instances")
 								+ ":\n"
 								+ (instances.isEmpty() ? botInstance.getServer().getLanguage("cmd.game.instances.empty")
@@ -75,7 +75,7 @@ public class GameCommand extends Command {
 						botInstance.startGame(g, event.getChannel(), mentions);
 					}
 				} else
-					botInstance.sendMessage(event.getChannel(), botInstance.getServer().getLanguage("game.nag"));
+					BotInstance.sendMessage(event.getChannel(), botInstance.getServer().getLanguage("game.nag"));
 			}
 		}
 		return true;

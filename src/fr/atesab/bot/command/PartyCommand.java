@@ -138,7 +138,7 @@ public class PartyCommand extends Command {
 			@Override
 			public boolean runCommand(MessageReceivedEvent event, String[] args, String message,
 					ServerConfig serverConfig, BotInstance botInstance, Party party) {
-				botInstance.sendMessage(event.getChannel(),
+				BotInstance.sendMessage(event.getChannel(),
 						party.users.stream().map(u -> "\n- " + u.getName() + "#" + u.getDiscriminator())
 								.collect(Collectors.joining("",
 										botInstance.getServer().getLanguage("cmd.party.leader") + ": "
@@ -282,7 +282,7 @@ public class PartyCommand extends Command {
 					ServerConfig serverConfig, BotInstance botInstance, Party party) {
 				if (args.length != 0)
 					return false;
-				botInstance.sendMessage(event.getChannel(), getGameList(botInstance));
+				BotInstance.sendMessage(event.getChannel(), getGameList(botInstance));
 				return true;
 			}
 		});
