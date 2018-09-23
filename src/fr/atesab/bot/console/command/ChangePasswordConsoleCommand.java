@@ -12,7 +12,7 @@ public class ChangePasswordConsoleCommand extends ConsoleCommand {
 		if(args.length==2) {
 			Account acc = console.getServer().getAccountByName(args[0]);
 			if(acc!=null) {
-				acc.hash = BotServer.MD5(args[1]);
+				acc.hash = BotServer.md5(args[1]);
 				console.getOutputStream().println("Password changed for "+acc.name);
 			} else console.getOutputStream().println("Unknow account");
 		} else return false;

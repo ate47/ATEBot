@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>fr.atesab.bot</groupId>
 	<artifactId>ATEDiBot</artifactId>
-	<version>1.5.4</version>
+	<version>1.5.5</version>
 	<name>ATEDiBot</name>
 	<description>Just another discord bot</description>
 	<build>

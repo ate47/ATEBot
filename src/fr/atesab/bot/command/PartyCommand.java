@@ -49,17 +49,14 @@ public class PartyCommand extends Command {
 		}
 
 		boolean startGame(Game game, BotInstance instance, IChannel channel) {
-			if (!(game.neededPlayer() <= count() && game.maxPlayer() >= count()))
-				return false;
 			for (IUser user : users) {
 				GameInstance<?> gi = instance.getGameInstanceByPlayer(user);
 				if (gi != null)
 					instance.endGame(gi, channel);
 			}
-			IUser[] users = this.users.toArray(new IUser[count()]);
-			users[users.length - 1] = leader;
-			instance.startGame(game.getInstance(instance.getServer(), users), channel);
-			return true;
+			List<IUser> players = new ArrayList<>(users);
+			players.add(leader);
+			return instance.startGame(game, channel, players);
 		}
 	}
 
@@ -378,15 +375,10 @@ public class PartyCommand extends Command {
 					GameInstance<?> gameInstance = botInstance.getGameInstanceByPlayer(event.getAuthor());
 					if (gameInstance == null) {
 						if (party != null)
-							if (!party.startGame(game, botInstance, event.getChannel()))
-								event.getChannel()
-										.sendMessage(botInstance.getServer().getLanguage("game.badnumber",
-												game.neededPlayer() + (game.neededPlayer() != game.maxPlayer()
-														? "-" + game.maxPlayer()
-														: "")));
-							else
-								botInstance.getGameInstances()
-										.add(game.getInstance(botInstance.getServer(), event.getAuthor()));
+							party.startGame(game, botInstance, event.getChannel());
+						else
+							botInstance.getGameInstances()
+									.add(game.getInstance(botInstance.getServer(), event.getAuthor()));
 					} else
 						event.getChannel().sendMessage(botInstance.getServer().getLanguage("game.inagame"));
 				} else
