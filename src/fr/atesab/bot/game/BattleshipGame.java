@@ -3,6 +3,7 @@ package fr.atesab.bot.game;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import fr.atesab.bot.BotInstance;
@@ -10,6 +11,7 @@ import fr.atesab.bot.BotServer;
 import fr.atesab.bot.utils.BotUtils;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
+import sx.blah.discord.util.DiscordException;
 
 public class BattleshipGame implements Game {
 	private static final String HELP_COMMAND = "?";
@@ -29,15 +31,14 @@ public class BattleshipGame implements Game {
 			for (int i = 0; i < map.length; i++)
 				for (int j = 0; j < map[i].length; j++)
 					map[i][j] = 0;
-			playerData = new HashMap<>();
-			initEnds = BotUtils.buildWithDefaultValueAndGet(new HashMap<>(), users, false, (m, k, v) -> m.put(k, v));
-			for (IUser player : users)
-				playerData.put(player, new HashMap<>());
+			playerData = BotUtils.createHashMap(users, k -> new HashMap<Ship, ShipData>());
+			initEnds = BotUtils.createHashMap(users, false);
 		}
 
 		@Override
 		public void end(IChannel channel, int winner) {
-			showGame(mainChannel, null);
+			showGame(mainChannel, null,
+					(winner >= 0 && winner < users.length) ? server.getLanguage("game.win", users[winner]) : "");
 			super.end(channel, winner);
 		}
 
@@ -56,15 +57,30 @@ public class BattleshipGame implements Game {
 									Ship.CARRIER.name() + " G 6 " + Direction.UP.name(), Ship.CARRIER.getName(server),
 									"G6", Direction.UP.getName(server)));
 		}
-
 		@Override
 		public int evaluateGame(IChannel channel, IUser player, String[] args) {
 			if (!gameStarted) {
 				if (args.length == 1 && args[0].equalsIgnoreCase(HELP_COMMAND))
 					sendHelp(channel);
-				else if (args.length == 1 && args[0].equalsIgnoreCase(INIT_END_COMMAND))
-					; // TODO
-				else if (args.length == 4) {
+				else if (args.length == 1 && args[0].equalsIgnoreCase(INIT_END_COMMAND)) {
+					initEnds.put(player, true);
+					new Thread(() -> {
+						int i = 0;
+						for (IUser p : users) {
+							try {
+								if (i > 2)
+									Thread.sleep(BotInstance.TIME_BETWEEN_SEND);
+								IChannel pmc = p.getOrCreatePMChannel();
+								pmc.sendMessage(server.getLanguage("game.start"));
+								i++;
+							} catch (DiscordException e) {
+								mainChannel.sendMessage(server.getLanguage("cantPM", player.mention()));
+							} catch (InterruptedException e) {
+								return;
+							}
+						}
+					}, "BattleShipMessageSender");
+				} else if (args.length == 4) {
 					Ship ship = Ship.getByNameIgnoreCase(args[0]);
 					if (ship != null) {
 						Direction dir = Direction.getByNameIgnoreCase(args[3]);
@@ -77,7 +93,7 @@ public class BattleshipGame implements Game {
 								if (playerData.size() == Ship.values().length) // confirm end
 									BotInstance.sendMessage(channel,
 											server.getLanguage("game.battleship.init.end", INIT_END_COMMAND));
-								showGame(channel, player);
+								showGame(channel, player, "");
 							} else // not valid location
 								BotInstance.sendMessage(channel, server.getLanguage("game.battleship.init.nal") + " "
 										+ server.getLanguage("game.battleship.help.do", HELP_COMMAND));
@@ -121,7 +137,7 @@ public class BattleshipGame implements Game {
 			return true;
 		}
 
-		private void showGame(IChannel channel, IUser player) {
+		private void showGame(IChannel channel, IUser player, String title) {
 			// TODO Auto-generated method stub
 		}
 	}
