@@ -8,7 +8,7 @@ import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public class TicTacToe implements Game {
-	public static class TicTacToeInstance extends GameInstance<TicTacToe> {
+	public static class TicTacToeInstance extends TurnGameInstance<TicTacToe> {
 		private int turn;
 		private int[] map;
 		public TicTacToeInstance(BotServer server, TicTacToe game, IUser[] users) {
@@ -17,7 +17,7 @@ public class TicTacToe implements Game {
 			map = new int[] {0, 0, 0,  0, 0, 0,  0, 0, 0};
 		}
 		@Override
-		public int evaluateGame(IChannel channel, int player, String[] args) {
+		public int evaluateGameTurn(IChannel channel, int player, String[] args) {
 			if(args.length==2 && args[0].matches("[123]") && args[1].matches("[123]")) {
 				int index = (Integer.valueOf(args[0])-1) + 3*(Integer.valueOf(args[1])-1);
 				if(map[index]==0) {
