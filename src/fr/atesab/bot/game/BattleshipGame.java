@@ -15,6 +15,8 @@ import fr.atesab.bot.BotInstance;
 import fr.atesab.bot.BotServer;
 import fr.atesab.bot.game.TicTacToeGame.TicTacToeInstance;
 import fr.atesab.bot.utils.BotUtils;
+import fr.atesab.bot.utils.Square;
+import fr.atesab.bot.utils.TriConsumer;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.util.DiscordException;
@@ -160,7 +162,24 @@ public class BattleshipGame implements Game {
 					graphics.drawLine(43, 43 + j * 40, 43, 43 + j * 40);
 					graphics.drawLine(43 + i * 40, 43, 43 + i * 40, 43);
 				}
+			data.values().forEach(shipdData -> {
+				int x1 = 20 + shipdData.x * 40 - 18 * shipdData.d.deltaX;
+				int y1 = 20 + shipdData.y * 40 - 18 * shipdData.d.deltaY;
 
+				int x2 = 20 + shipdData.x * 40 + 18 * shipdData.d.deltaX * shipdData.ship.length;
+				int y2 = 20 + shipdData.y * 40 + 18 * shipdData.d.deltaY * shipdData.ship.length;
+
+				if (x1 > x2) {
+					x1 -= x2;
+					x2 += x1;
+					x1 = x2 - x1;
+				}
+				if (y1 > y2) {
+					y1 -= y2;
+					y2 += y1;
+					y1 = y2 - y1;
+				}
+			});
 		}
 	}
 
@@ -190,31 +209,30 @@ public class BattleshipGame implements Game {
 			this.deltaY = deltaY;
 			this.lang = lang;
 		}
-		
+
 		public String getName(BotServer server) {
 			return server.getLanguage(lang);
 		}
 	}
 
 	public enum Ship {
-		CARRIER(5, "game.battleship.ship.carrier", (g, d) -> {
-			
+		CARRIER(5, "game.battleship.ship.carrier", (g, d, s) -> {
+
 		}),
 
-		BATTLESHIP(4, "game.battleship.ship.battleship", (g, d) -> {
-			
+		BATTLESHIP(4, "game.battleship.ship.battleship", (g, d, s) -> {
+
 		}),
 
-		CRUISER(3, "game.battleship.ship.cruiser", (g, d) -> {
-			
+		CRUISER(3, "game.battleship.ship.cruiser", (g, d, s) -> {
+
 		}),
 
-		SUBMARINE(3, "game.battleship.ship.submarine", (g, d) -> {
-			
+		SUBMARINE(3, "game.battleship.ship.submarine", (g, d, s) -> {
+
 		}),
 
-		DESTROYER(2, "game.battleship.ship.destroyer", (g, d) -> {
-			
+		DESTROYER(2, "game.battleship.ship.destroyer", (g, d, s) -> {
 		});
 
 		public static Ship getByNameIgnoreCase(String name) {
@@ -226,9 +244,9 @@ public class BattleshipGame implements Game {
 
 		public final int length;
 		private String lang;
-		public final BiConsumer<Graphics2D, ShipData> drawer;
+		public final TriConsumer<Graphics2D, ShipData, Square> drawer;
 
-		private Ship(int lenght, String lang, BiConsumer<Graphics2D, ShipData> drawer) {
+		private Ship(int lenght, String lang, TriConsumer<Graphics2D, ShipData, Square> drawer) {
 			this.length = lenght;
 			this.lang = lang;
 			this.drawer = drawer;
