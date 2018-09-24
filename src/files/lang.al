@@ -49,6 +49,7 @@ perm.null=Aucune permission requise
 
 noperm=Vous n'avez pas la permission de faire ceci.
 needperm=Il vous faut la permission %s
+cantPM=Impossible de MP %s
 
 group.panel=Administration
 group.tools=Bots

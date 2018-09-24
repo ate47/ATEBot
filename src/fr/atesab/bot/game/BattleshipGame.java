@@ -1,13 +1,19 @@
 package fr.atesab.bot.game;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import fr.atesab.bot.BotInstance;
 import fr.atesab.bot.BotServer;
+import fr.atesab.bot.game.TicTacToeGame.TicTacToeInstance;
 import fr.atesab.bot.utils.BotUtils;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
@@ -57,6 +63,7 @@ public class BattleshipGame implements Game {
 									Ship.CARRIER.name() + " G 6 " + Direction.UP.name(), Ship.CARRIER.getName(server),
 									"G6", Direction.UP.getName(server)));
 		}
+
 		@Override
 		public int evaluateGame(IChannel channel, IUser player, String[] args) {
 			if (!gameStarted) {
@@ -70,8 +77,7 @@ public class BattleshipGame implements Game {
 							try {
 								if (i > 2)
 									Thread.sleep(BotInstance.TIME_BETWEEN_SEND);
-								IChannel pmc = p.getOrCreatePMChannel();
-								pmc.sendMessage(server.getLanguage("game.start"));
+								showGame(p.getOrCreatePMChannel(), p, server.getLanguage("game.start"));
 								i++;
 							} catch (DiscordException e) {
 								mainChannel.sendMessage(server.getLanguage("cantPM", player.mention()));
@@ -138,7 +144,23 @@ public class BattleshipGame implements Game {
 		}
 
 		private void showGame(IChannel channel, IUser player, String title) {
-			// TODO Auto-generated method stub
+			Map<Ship, ShipData> data = playerData.get(player);
+			int width = 12 + 400;
+			int height = 12 + 400 * (data == null ? playerData.size() : 1);
+			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D graphics = bufferedImage.createGraphics();
+			graphics.setFont(new Font(graphics.getFont().getFontName(), Font.BOLD, 100));
+			graphics.setStroke(new BasicStroke(4));
+			graphics.setColor(new Color(0xff990000));
+			graphics.fillRect(3, 15, width - 3, height - 3);
+			graphics.setColor(Color.WHITE);
+			graphics.drawRect(3, 15, width - 3, height - 3);
+			for (int i = 0; i < 9; i++)
+				for (int j = 0; j < 9; j++) {
+					graphics.drawLine(43, 43 + j * 40, 43, 43 + j * 40);
+					graphics.drawLine(43 + i * 40, 43, 43 + i * 40, 43);
+				}
+
 		}
 	}
 
@@ -158,40 +180,42 @@ public class BattleshipGame implements Game {
 			return null;
 		}
 
-		private int deltaX;
-		private int deltaY;
+		public final int deltaX;
+		public final int deltaY;
 
-		private String lang;
+		private final String lang;
 
 		private Direction(int deltaX, int deltaY, String lang) {
 			this.deltaX = deltaX;
 			this.deltaY = deltaY;
 			this.lang = lang;
 		}
-
-		public int getDeltaX() {
-			return deltaX;
-		}
-
-		public int getDeltaY() {
-			return deltaY;
-		}
-
+		
 		public String getName(BotServer server) {
 			return server.getLanguage(lang);
 		}
 	}
 
 	public enum Ship {
-		CARRIER(5, "game.battleship.ship.carrier"),
+		CARRIER(5, "game.battleship.ship.carrier", (g, d) -> {
+			
+		}),
 
-		BATTLESHIP(4, "game.battleship.ship.battleship"),
+		BATTLESHIP(4, "game.battleship.ship.battleship", (g, d) -> {
+			
+		}),
 
-		CRUISER(3, "game.battleship.ship.cruiser"),
+		CRUISER(3, "game.battleship.ship.cruiser", (g, d) -> {
+			
+		}),
 
-		SUBMARINE(3, "game.battleship.ship.submarine"),
+		SUBMARINE(3, "game.battleship.ship.submarine", (g, d) -> {
+			
+		}),
 
-		DESTROYER(2, "game.battleship.ship.destroyer");
+		DESTROYER(2, "game.battleship.ship.destroyer", (g, d) -> {
+			
+		});
 
 		public static Ship getByNameIgnoreCase(String name) {
 			for (Ship ship : Ship.class.getEnumConstants())
@@ -201,12 +225,13 @@ public class BattleshipGame implements Game {
 		}
 
 		public final int length;
-
 		private String lang;
+		public final BiConsumer<Graphics2D, ShipData> drawer;
 
-		private Ship(int lenght, String lang) {
+		private Ship(int lenght, String lang, BiConsumer<Graphics2D, ShipData> drawer) {
 			this.length = lenght;
 			this.lang = lang;
+			this.drawer = drawer;
 		}
 
 		public String getName(BotServer server) {
@@ -234,8 +259,8 @@ public class BattleshipGame implements Game {
 				return true;
 			int x = this.x;
 			int y = this.y;
-			int sx = x + d.getDeltaX() * ship.length;
-			int sy = y + d.getDeltaY() * ship.length;
+			int sx = x + d.deltaX * ship.length;
+			int sy = y + d.deltaY * ship.length;
 			if (x > sx) { // switch x<->sx
 				x -= sx;
 				sx += x;
@@ -246,8 +271,7 @@ public class BattleshipGame implements Game {
 				sy += y;
 				y = sy - y;
 			}
-			for (int i = 0, j = data.x, k = data.y; i < data.ship.length; i++, j += data.d.getDeltaX(), k += data.d
-					.getDeltaY())
+			for (int i = 0, j = data.x, k = data.y; i < data.ship.length; i++, j += data.d.deltaX, k += data.d.deltaY)
 				if (x >= j && sx <= j && y >= k && sy <= k)
 					return true;
 			return false;
@@ -277,7 +301,7 @@ public class BattleshipGame implements Game {
 		 * true if this location is a part of the ship
 		 */
 		public boolean shot(int x, int y) {
-			for (int i = 0, j = this.x, k = this.y; i < ship.length; i++, j += d.getDeltaX(), k += d.getDeltaY())
+			for (int i = 0, j = this.x, k = this.y; i < ship.length; i++, j += d.deltaX, k += d.deltaY)
 				if (j == x && k == y)
 					return true;
 			return false;

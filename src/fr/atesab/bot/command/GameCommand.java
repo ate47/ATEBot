@@ -60,7 +60,7 @@ public class GameCommand extends Command {
 			} else {
 				Game g = botInstance.getServer().getGameByName(args[0]);
 				if (g != null) {
-					if (args[1].equalsIgnoreCase("instances")) {
+					if (args.length == 2 && args[1].equalsIgnoreCase("instances")) {
 						List<GameInstance<Game>> instances = botInstance.getGameInstanceByGame(g);
 						BotInstance.sendMessage(event.getChannel(), botInstance.getServer()
 								.getLanguage("cmd.game.instances")
