@@ -169,16 +169,7 @@ public class BattleshipGame implements Game {
 				int x2 = 20 + shipdData.x * 40 + 18 * shipdData.d.deltaX * shipdData.ship.length;
 				int y2 = 20 + shipdData.y * 40 + 18 * shipdData.d.deltaY * shipdData.ship.length;
 
-				if (x1 > x2) {
-					x1 -= x2;
-					x2 += x1;
-					x1 = x2 - x1;
-				}
-				if (y1 > y2) {
-					y1 -= y2;
-					y2 += y1;
-					y1 = y2 - y1;
-				}
+				
 			});
 		}
 	}
