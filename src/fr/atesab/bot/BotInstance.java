@@ -14,7 +14,7 @@ import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public class BotInstance {
-	private static final long TIME_BETWEEN_SEND = 500L;
+	public static final long TIME_BETWEEN_SEND = 500L;
 	private IDiscordClient client;
 	private BotConfig config;
 	private DiscordListener listener;

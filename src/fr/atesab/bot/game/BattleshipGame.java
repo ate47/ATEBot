@@ -1,43 +1,47 @@
 package fr.atesab.bot.game;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import fr.atesab.bot.BotInstance;
 import fr.atesab.bot.BotServer;
+import fr.atesab.bot.command.Command;
 import fr.atesab.bot.utils.BotUtils;
+import fr.atesab.bot.utils.Square;
+import fr.atesab.bot.utils.TriConsumer;
 import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
+import sx.blah.discord.util.DiscordException;
 
 public class BattleshipGame implements Game {
 	private static final String HELP_COMMAND = "?";
 	private static final String INIT_END_COMMAND = "confirm";
+	private static final int MAP_HEIGHT = 412;
 
 	public class BattleshipGameInstance extends GameInstance<BattleshipGame> {
 		private IChannel mainChannel;
 		private int turn;
 		private boolean gameStarted = false;
-		private Map<IUser, Map<Ship, ShipData>> playerData;
-		private Map<IUser, Boolean> initEnds;
-		private int[][] map;
+		private Map<IUser, PlayerData> playerDatas;
 
 		public BattleshipGameInstance(BotServer server, BattleshipGame game, IUser[] users) {
 			super(server, game, users);
-			map = new int[10][10];
-			for (int i = 0; i < map.length; i++)
-				for (int j = 0; j < map[i].length; j++)
-					map[i][j] = 0;
-			playerData = new HashMap<>();
-			initEnds = BotUtils.buildWithDefaultValueAndGet(new HashMap<>(), users, false, (m, k, v) -> m.put(k, v));
-			for (IUser player : users)
-				playerData.put(player, new HashMap<>());
+			playerDatas = BotUtils.createHashMap(users, PlayerData::new);
 		}
 
 		@Override
 		public void end(IChannel channel, int winner) {
-			showGame(mainChannel, null);
+			showGame(mainChannel, null,
+					(winner >= 0 && winner < users.length) ? server.getLanguage("game.win", users[winner]) : "");
 			super.end(channel, winner);
 		}
 
@@ -59,25 +63,41 @@ public class BattleshipGame implements Game {
 
 		@Override
 		public int evaluateGame(IChannel channel, IUser player, String[] args) {
+			PlayerData playerData = playerDatas.get(player);
 			if (!gameStarted) {
 				if (args.length == 1 && args[0].equalsIgnoreCase(HELP_COMMAND))
 					sendHelp(channel);
-				else if (args.length == 1 && args[0].equalsIgnoreCase(INIT_END_COMMAND))
-					; // TODO
-				else if (args.length == 4) {
+				else if (args.length == 1 && args[0].equalsIgnoreCase(INIT_END_COMMAND)) {
+					playerData.setInitEnds(true);
+					new Thread(() -> {
+						int i = 0;
+						for (IUser p : users) {
+							try {
+								if (i > 2)
+									Thread.sleep(BotInstance.TIME_BETWEEN_SEND);
+								showGame(p.getOrCreatePMChannel(), p, server.getLanguage("game.start"));
+								i++;
+							} catch (DiscordException e) {
+								mainChannel.sendMessage(server.getLanguage("cantPM", player.mention()));
+							} catch (InterruptedException e) {
+								return;
+							}
+						}
+					}, "BattleShipMessageSender");
+				} else if (args.length == 4) {
 					Ship ship = Ship.getByNameIgnoreCase(args[0]);
 					if (ship != null) {
 						Direction dir = Direction.getByNameIgnoreCase(args[3]);
 						if (dir != null) {
 							char[] cs = args[1].toLowerCase().toCharArray();
-							Map<Ship, ShipData> playerData = this.playerData.get(player);
+							Map<Ship, ShipData> shipData = playerData.shipData;
 							if (cs.length == 1 && cs[0] >= 'a' && cs[0] <= 'j' && args[2].matches("[1-9]|(10)")
-									&& placeShip(playerData, cs[0] - 'a', Integer.valueOf(args[2]), ship, dir)) {
+									&& placeShip(shipData, cs[0] - 'a', Integer.valueOf(args[2]), ship, dir)) {
 								BotInstance.sendMessage(channel, server.getLanguage("game.battleship.init.placed"));
-								if (playerData.size() == Ship.values().length) // confirm end
+								if (shipData.size() == Ship.values().length) // confirm end
 									BotInstance.sendMessage(channel,
 											server.getLanguage("game.battleship.init.end", INIT_END_COMMAND));
-								showGame(channel, player);
+								showGame(channel, player, "");
 							} else // not valid location
 								BotInstance.sendMessage(channel, server.getLanguage("game.battleship.init.nal") + " "
 										+ server.getLanguage("game.battleship.help.do", HELP_COMMAND));
@@ -121,8 +141,52 @@ public class BattleshipGame implements Game {
 			return true;
 		}
 
-		private void showGame(IChannel channel, IUser player) {
-			// TODO Auto-generated method stub
+		private void showGame(IChannel channel, IUser player, String title) {
+			PlayerData data = playerDatas.get(player);
+			int maps = playerDatas.size();
+			int width = 400;
+			int height = 12 + MAP_HEIGHT * maps;
+			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+			Graphics2D graphics = bufferedImage.createGraphics();
+			graphics.setFont(new Font(graphics.getFont().getFontName(), Font.BOLD, 100));
+			graphics.setStroke(new BasicStroke(4));
+			graphics.setColor(new Color(0xff990000));
+			graphics.fillRect(3, 15, width - 3, height - 3);
+			graphics.setColor(Color.WHITE);
+			graphics.drawRect(3, 15, width - 3, height - 3);
+			if (data != null) {
+				int i = 0;
+				for (Entry<IUser, PlayerData> p : playerDatas.entrySet()) {
+					if (player.getLongID() == p.getKey().getLongID())
+						continue;
+					drawGame(graphics, i * MAP_HEIGHT, p.getValue().shipData.values(), p.getValue().map, false);
+					Command.drawCenteredString(p.getKey().getName(), width / 2, (i + 1) * MAP_HEIGHT, graphics);
+					i++;
+				}
+				drawGame(graphics, i * MAP_HEIGHT, data.shipData.values(), data.map, true);
+			} else {
+				int i = 0;
+				for (Entry<IUser, PlayerData> p : playerDatas.entrySet()) {
+					drawGame(graphics, i * MAP_HEIGHT, p.getValue().shipData.values(), p.getValue().map, true);
+					Command.drawCenteredString(p.getKey().getName(), width / 2, (i + 1) * MAP_HEIGHT, graphics);
+					i++;
+				}
+			}
+		}
+
+		private void drawGame(Graphics2D graphics, int offsetY, Collection<ShipData> data, int[][] map,
+				boolean drawShip) {
+			for (int i = 0; i < 9; i++)
+				for (int j = 0; j < 9; j++) {
+					graphics.drawLine(43, offsetY + 43 + j * 40, 43, offsetY + 43 + j * 40);
+					graphics.drawLine(43 + i * 40, offsetY + 43, 43 + i * 40, offsetY + 43);
+				}
+			if (drawShip)
+				data.forEach(shipData -> shipData.draw(graphics,
+						new Square(20 + shipData.x * 40 - 18 * shipData.d.deltaX,
+								offsetY + 20 + shipData.y * 40 - 18 * shipData.d.deltaY,
+								20 + shipData.x * 40 + 18 * shipData.d.deltaX * shipData.ship.length,
+								offsetY + 20 + shipData.y * 40 + 18 * shipData.d.deltaY * shipData.ship.length)));
 		}
 	}
 
@@ -142,23 +206,15 @@ public class BattleshipGame implements Game {
 			return null;
 		}
 
-		private int deltaX;
-		private int deltaY;
+		public final int deltaX;
+		public final int deltaY;
 
-		private String lang;
+		private final String lang;
 
 		private Direction(int deltaX, int deltaY, String lang) {
 			this.deltaX = deltaX;
 			this.deltaY = deltaY;
 			this.lang = lang;
-		}
-
-		public int getDeltaX() {
-			return deltaX;
-		}
-
-		public int getDeltaY() {
-			return deltaY;
 		}
 
 		public String getName(BotServer server) {
@@ -167,15 +223,24 @@ public class BattleshipGame implements Game {
 	}
 
 	public enum Ship {
-		CARRIER(5, "game.battleship.ship.carrier"),
+		CARRIER(5, "game.battleship.ship.carrier", (g, d, s) -> {
 
-		BATTLESHIP(4, "game.battleship.ship.battleship"),
+		}),
 
-		CRUISER(3, "game.battleship.ship.cruiser"),
+		BATTLESHIP(4, "game.battleship.ship.battleship", (g, d, s) -> {
 
-		SUBMARINE(3, "game.battleship.ship.submarine"),
+		}),
 
-		DESTROYER(2, "game.battleship.ship.destroyer");
+		CRUISER(3, "game.battleship.ship.cruiser", (g, d, s) -> {
+
+		}),
+
+		SUBMARINE(3, "game.battleship.ship.submarine", (g, d, s) -> {
+
+		}),
+
+		DESTROYER(2, "game.battleship.ship.destroyer", (g, d, s) -> {
+		});
 
 		public static Ship getByNameIgnoreCase(String name) {
 			for (Ship ship : Ship.class.getEnumConstants())
@@ -185,16 +250,40 @@ public class BattleshipGame implements Game {
 		}
 
 		public final int length;
-
 		private String lang;
+		public final TriConsumer<Graphics2D, ShipData, Square> drawer;
 
-		private Ship(int lenght, String lang) {
+		private Ship(int lenght, String lang, TriConsumer<Graphics2D, ShipData, Square> drawer) {
 			this.length = lenght;
 			this.lang = lang;
+			this.drawer = drawer;
 		}
 
 		public String getName(BotServer server) {
 			return server.getLanguage(lang);
+		}
+	}
+
+	public class PlayerData {
+		public final Map<Ship, ShipData> shipData = new HashMap<>();
+		private boolean initEnds = false;
+		public final int[][] map = new int[10][10];
+		public final IUser player;
+
+		public PlayerData(IUser player) {
+			this.player = player;
+			for (int i = 0; i < map.length; i++)
+				for (int j = 0; j < map[i].length; j++) {
+					map[i][j] = 0;
+				}
+		}
+
+		public boolean hasInitEnds() {
+			return initEnds;
+		}
+
+		public void setInitEnds(boolean initEnds) {
+			this.initEnds = initEnds;
 		}
 	}
 
@@ -218,8 +307,8 @@ public class BattleshipGame implements Game {
 				return true;
 			int x = this.x;
 			int y = this.y;
-			int sx = x + d.getDeltaX() * ship.length;
-			int sy = y + d.getDeltaY() * ship.length;
+			int sx = x + d.deltaX * ship.length;
+			int sy = y + d.deltaY * ship.length;
 			if (x > sx) { // switch x<->sx
 				x -= sx;
 				sx += x;
@@ -230,11 +319,14 @@ public class BattleshipGame implements Game {
 				sy += y;
 				y = sy - y;
 			}
-			for (int i = 0, j = data.x, k = data.y; i < data.ship.length; i++, j += data.d.getDeltaX(), k += data.d
-					.getDeltaY())
+			for (int i = 0, j = data.x, k = data.y; i < data.ship.length; i++, j += data.d.deltaX, k += data.d.deltaY)
 				if (x >= j && sx <= j && y >= k && sy <= k)
 					return true;
 			return false;
+		}
+
+		public void draw(Graphics2D graphics, Square square) {
+			ship.drawer.accept(graphics, this, square);
 		}
 
 		@Override
@@ -261,7 +353,7 @@ public class BattleshipGame implements Game {
 		 * true if this location is a part of the ship
 		 */
 		public boolean shot(int x, int y) {
-			for (int i = 0, j = this.x, k = this.y; i < ship.length; i++, j += d.getDeltaX(), k += d.getDeltaY())
+			for (int i = 0, j = this.x, k = this.y; i < ship.length; i++, j += d.deltaX, k += d.deltaY)
 				if (j == x && k == y)
 					return true;
 			return false;
