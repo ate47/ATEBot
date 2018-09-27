@@ -6,10 +6,10 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import fr.atesab.bot.BotInstance;
@@ -25,6 +25,11 @@ import sx.blah.discord.util.DiscordException;
 public class BattleshipGame implements Game {
 	private static final String HELP_COMMAND = "?";
 	private static final String INIT_END_COMMAND = "confirm";
+	private static final Color COLOR_WATER = new Color(0xff008ddc);
+	private static final Color COLOR_SHIP_MAIN = new Color(0xff7f7f7f);
+	private static final Color COLOR_SHIP_SECOND = new Color(0xff474747);
+	private static final Color COLOR_SHOOT_WATER = new Color(0xffdddddd);
+	private static final Color COLOR_SHOOT_SHIP = new Color(0xffee0000);
 	private static final int MAP_HEIGHT = 412;
 
 	public class BattleshipGameInstance extends GameInstance<BattleshipGame> {
@@ -41,7 +46,7 @@ public class BattleshipGame implements Game {
 		@Override
 		public void end(IChannel channel, int winner) {
 			showGame(mainChannel, null,
-					(winner >= 0 && winner < users.length) ? server.getLanguage("game.win", users[winner]) : "");
+					(winner >= 0 && winner < users.length) ? server.getLanguage("game.win", users[winner]) : "", true);
 			super.end(channel, winner);
 		}
 
@@ -75,7 +80,7 @@ public class BattleshipGame implements Game {
 							try {
 								if (i > 2)
 									Thread.sleep(BotInstance.TIME_BETWEEN_SEND);
-								showGame(p.getOrCreatePMChannel(), p, server.getLanguage("game.start"));
+								showGame(p.getOrCreatePMChannel(), p, server.getLanguage("game.start"), true);
 								i++;
 							} catch (DiscordException e) {
 								mainChannel.sendMessage(server.getLanguage("cantPM", player.mention()));
@@ -92,12 +97,12 @@ public class BattleshipGame implements Game {
 							char[] cs = args[1].toLowerCase().toCharArray();
 							Map<Ship, ShipData> shipData = playerData.shipData;
 							if (cs.length == 1 && cs[0] >= 'a' && cs[0] <= 'j' && args[2].matches("[1-9]|(10)")
-									&& placeShip(shipData, cs[0] - 'a', Integer.valueOf(args[2]), ship, dir)) {
+									&& playerData.placeShip(cs[0] - 'a', Integer.valueOf(args[2]), ship, dir)) {
 								BotInstance.sendMessage(channel, server.getLanguage("game.battleship.init.placed"));
 								if (shipData.size() == Ship.values().length) // confirm end
 									BotInstance.sendMessage(channel,
 											server.getLanguage("game.battleship.init.end", INIT_END_COMMAND));
-								showGame(channel, player, "");
+								showGame(channel, player, "", false);
 							} else // not valid location
 								BotInstance.sendMessage(channel, server.getLanguage("game.battleship.init.nal") + " "
 										+ server.getLanguage("game.battleship.help.do", HELP_COMMAND));
@@ -129,64 +134,61 @@ public class BattleshipGame implements Game {
 			super.init(channel);
 		}
 
-		private boolean placeShip(Map<Ship, ShipData> playerData, int x, int y, Ship ship, Direction dir) {
-			ShipData data = new ShipData(x, y, ship, dir);
-			for (ShipData d : playerData.values()) {
-				if (d.ship == ship)
-					continue;
-				if (d.collide(data))
-					return false;
-			}
-			playerData.put(ship, data);
-			return true;
-		}
-
-		private void showGame(IChannel channel, IUser player, String title) {
+		private void showGame(IChannel channel, IUser player, String title, boolean showOthers) {
 			PlayerData data = playerDatas.get(player);
-			int maps = playerDatas.size();
+			int maps = showOthers ? playerDatas.size() : 1;
 			int width = 400;
-			int height = 12 + MAP_HEIGHT * maps;
+			int height = MAP_HEIGHT * maps;
 			BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 			Graphics2D graphics = bufferedImage.createGraphics();
 			graphics.setFont(new Font(graphics.getFont().getFontName(), Font.BOLD, 100));
 			graphics.setStroke(new BasicStroke(4));
-			graphics.setColor(new Color(0xff990000));
-			graphics.fillRect(3, 15, width - 3, height - 3);
 			graphics.setColor(Color.WHITE);
 			graphics.drawRect(3, 15, width - 3, height - 3);
 			if (data != null) {
 				int i = 0;
-				for (Entry<IUser, PlayerData> p : playerDatas.entrySet()) {
-					if (player.getLongID() == p.getKey().getLongID())
-						continue;
-					drawGame(graphics, i * MAP_HEIGHT, p.getValue().shipData.values(), p.getValue().map, false);
-					Command.drawCenteredString(p.getKey().getName(), width / 2, (i + 1) * MAP_HEIGHT, graphics);
-					i++;
-				}
-				drawGame(graphics, i * MAP_HEIGHT, data.shipData.values(), data.map, true);
+				if (showOthers)
+					for (Entry<IUser, PlayerData> p : playerDatas.entrySet()) {
+						if (player.getLongID() == p.getKey().getLongID())
+							continue;
+						drawGame(graphics, i * MAP_HEIGHT, p.getValue(), false);
+						i++;
+					}
+				drawGame(graphics, i * MAP_HEIGHT, data, true);
 			} else {
 				int i = 0;
 				for (Entry<IUser, PlayerData> p : playerDatas.entrySet()) {
-					drawGame(graphics, i * MAP_HEIGHT, p.getValue().shipData.values(), p.getValue().map, true);
-					Command.drawCenteredString(p.getKey().getName(), width / 2, (i + 1) * MAP_HEIGHT, graphics);
+					drawGame(graphics, i * MAP_HEIGHT, p.getValue(), true);
 					i++;
 				}
 			}
 		}
 
-		private void drawGame(Graphics2D graphics, int offsetY, Collection<ShipData> data, int[][] map,
-				boolean drawShip) {
+		private void drawGame(Graphics2D graphics, int offsetY, PlayerData data, boolean drawShip) {
+			graphics.setColor(COLOR_WATER);
+			graphics.fillRect(3, offsetY, 394, 394);
 			for (int i = 0; i < 9; i++)
 				for (int j = 0; j < 9; j++) {
 					graphics.drawLine(43, offsetY + 43 + j * 40, 43, offsetY + 43 + j * 40);
 					graphics.drawLine(43 + i * 40, offsetY + 43, 43 + i * 40, offsetY + 43);
 				}
 			if (drawShip)
-				data.forEach(shipData -> shipData.draw(graphics,
+				data.shipData.values().forEach(shipData -> shipData.draw(graphics,
 						new Square(20 + shipData.x * 40 - 18 * shipData.d.deltaX,
 								offsetY + 20 + shipData.y * 40 - 18 * shipData.d.deltaY,
 								20 + shipData.x * 40 + 18 * shipData.d.deltaX * shipData.ship.length,
 								offsetY + 20 + shipData.y * 40 + 18 * shipData.d.deltaY * shipData.ship.length)));
+			for (int i = 0; i < 10; i++)
+				for (int j = 0; j < 10; j++) {
+					int k = data.map[i][j];
+					boolean touch = (k & 2) == 1;
+					graphics.setColor(drawShip || touch ? (k & 1) == 1 ? COLOR_SHOOT_SHIP : COLOR_SHOOT_WATER : COLOR_SHOOT_WATER);
+					if(touch)
+						graphics.drawOval(10 + i * 40, 10 + i * 40, 20, 20);
+					else
+						graphics.fillOval(10 + i * 40, 10 + i * 40, 20, 20);
+				}
+			Command.drawCenteredString(data.player.getName(), 200, offsetY, graphics);
 		}
 	}
 
@@ -224,22 +226,23 @@ public class BattleshipGame implements Game {
 
 	public enum Ship {
 		CARRIER(5, "game.battleship.ship.carrier", (g, d, s) -> {
-
+			// TODO draw
 		}),
 
 		BATTLESHIP(4, "game.battleship.ship.battleship", (g, d, s) -> {
-
+			// TODO draw
 		}),
 
 		CRUISER(3, "game.battleship.ship.cruiser", (g, d, s) -> {
-
+			// TODO draw
 		}),
 
 		SUBMARINE(3, "game.battleship.ship.submarine", (g, d, s) -> {
-
+			// TODO draw
 		}),
 
 		DESTROYER(2, "game.battleship.ship.destroyer", (g, d, s) -> {
+			// TODO draw
 		});
 
 		public static Ship getByNameIgnoreCase(String name) {
@@ -267,6 +270,9 @@ public class BattleshipGame implements Game {
 	public class PlayerData {
 		public final Map<Ship, ShipData> shipData = new HashMap<>();
 		private boolean initEnds = false;
+		/**
+		 * touch|ship example : 2 (10) -> touched water 3 (11) -> touched ship
+		 */
 		public final int[][] map = new int[10][10];
 		public final IUser player;
 
@@ -284,6 +290,30 @@ public class BattleshipGame implements Game {
 
 		public void setInitEnds(boolean initEnds) {
 			this.initEnds = initEnds;
+		}
+
+		public boolean placeShip(int x, int y, Ship ship, Direction dir) {
+			ShipData data = new ShipData(x, y, ship, dir);
+			for (ShipData d : shipData.values()) {
+				if (d.ship == ship)
+					continue;
+				if (d.collide(data))
+					return false;
+			}
+			ShipData oldData = shipData.put(ship, data);
+			if (oldData != null)
+				applyOnMap(oldData, i -> i & 0xfffffffe); // remove old ship
+			applyOnMap(data, i -> i | 1); // place new ship
+			return true;
+		}
+
+		public void applyOnMap(ShipData data, Function<Integer, Integer> function) {
+			int n, m;
+			n = data.x + data.ship.length * data.d.deltaX;
+			m = data.y + data.ship.length * data.d.deltaY;
+			for (int i = data.x; i < n && i < 10; i += data.d.deltaX)
+				for (int j = data.y; i < m && j < 10; j += data.d.deltaY)
+					map[i][j] = function.apply(map[i][j]);
 		}
 	}
 
