@@ -118,6 +118,9 @@ public class BattleshipGame implements Game {
 			} else {
 				IUser p = getUsers()[turn];
 				if (player.getLongID() == p.getLongID()) {
+					if (args.length == 2) {
+
+					}
 					// TODO
 				} else {
 					channel.sendMessage(server.getLanguage("game.badturn", p.mention()));
@@ -172,18 +175,19 @@ public class BattleshipGame implements Game {
 					graphics.drawLine(43, offsetY + 43 + j * 40, 43, offsetY + 43 + j * 40);
 					graphics.drawLine(43 + i * 40, offsetY + 43, 43 + i * 40, offsetY + 43);
 				}
-			if (drawShip)
-				data.shipData.values().forEach(shipData -> shipData.draw(graphics,
-						new Square(20 + shipData.x * 40 - 18 * shipData.d.deltaX,
-								offsetY + 20 + shipData.y * 40 - 18 * shipData.d.deltaY,
-								20 + shipData.x * 40 + 18 * shipData.d.deltaX * shipData.ship.length,
-								offsetY + 20 + shipData.y * 40 + 18 * shipData.d.deltaY * shipData.ship.length)));
+			data.shipData.values().stream().filter(shipData -> drawShip || shipData.isDead(data))
+					.forEach(shipData -> shipData.draw(graphics,
+							new Square(20 + shipData.x * 40 - 18 * shipData.d.deltaX,
+									offsetY + 20 + shipData.y * 40 - 18 * shipData.d.deltaY,
+									20 + shipData.x * 40 + 18 * shipData.d.deltaX * shipData.ship.length,
+									offsetY + 20 + shipData.y * 40 + 18 * shipData.d.deltaY * shipData.ship.length)));
 			for (int i = 0; i < 10; i++)
 				for (int j = 0; j < 10; j++) {
 					int k = data.map[i][j];
 					boolean touch = (k & 2) == 1;
-					graphics.setColor(drawShip || touch ? (k & 1) == 1 ? COLOR_SHOOT_SHIP : COLOR_SHOOT_WATER : COLOR_SHOOT_WATER);
-					if(touch)
+					graphics.setColor(drawShip || touch ? (k & 1) == 1 ? COLOR_SHOOT_SHIP : COLOR_SHOOT_WATER
+							: COLOR_SHOOT_WATER);
+					if (touch)
 						graphics.drawOval(10 + i * 40, 10 + i * 40, 20, 20);
 					else
 						graphics.fillOval(10 + i * 40, 10 + i * 40, 20, 20);
@@ -387,6 +391,13 @@ public class BattleshipGame implements Game {
 				if (j == x && k == y)
 					return true;
 			return false;
+		}
+
+		public boolean isDead(PlayerData data) {
+			for (int i = 0, j = this.x, k = this.y; i < ship.length; i++, j += d.deltaX, k += d.deltaY)
+				if ((data.map[j][k] & 2) == 1)
+					return true;
+			return true;
 		}
 
 	}
