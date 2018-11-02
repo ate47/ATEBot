@@ -109,7 +109,7 @@ public class APlayCommand extends Command {
 						}
 						break;
 					}
-					botInstance.sendMessage(event.getChannel(), s+
+					BotInstance.sendMessage(event.getChannel(), s+
 							"\n"+botInstance.getServer().getLanguage("cmd.ap.type.current") + ": " + botInstance.getServer().getLanguage("cmd.ap.type." + audioPlayer.getType().name()));
 				} else if (args[0].equalsIgnoreCase("restart")) {
 					AudioTrack next = audioPlayer.getAudioPlayer().getPlayingTrack();
@@ -127,7 +127,7 @@ public class APlayCommand extends Command {
 							s += (s.isEmpty() ? "" : "\n") + String.valueOf(i + 1) + getTrackMetadata(tracks[i]);
 						}
 					}
-					botInstance.sendMessage(event.getChannel(), s);
+					BotInstance.sendMessage(event.getChannel(), s);
 				} else if (args[0].equalsIgnoreCase("clear")) {
 					audioPlayer.getQueue().clear();
 					audioPlayer.getAudioPlayer().stopTrack();

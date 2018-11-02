@@ -220,7 +220,7 @@ public class SayCommand extends Command {
 
 	public static void sendMessage(IChannel channel, MessageReceivedEvent event, String[] args,
 			BotInstance botInstance) {
-		botInstance.sendMessage(channel, parsedMessage(event, args), " ");
+		BotInstance.sendMessage(channel, parsedMessage(event, args), " ");
 	}
 
 	@Override
@@ -245,7 +245,7 @@ public class SayCommand extends Command {
 		message = event.getMessage().getContent();
 		if (args.length > 0) {
 			if (args.length == 1 && args[0].equalsIgnoreCase("opt")) {
-				botInstance.sendMessage(event.getChannel(), options.stream()
+				BotInstance.sendMessage(event.getChannel(), options.stream()
 						.map(opt -> "\n**" + OPTION_CHAR + opt.getName() + "**: "
 								+ botInstance.getServer().getLanguage("cmd.say.opt." + opt.getName()))
 						.collect(Collectors.joining("", botInstance.getServer().getLanguage("cmd.say.opt") + ": ",

@@ -25,11 +25,7 @@ import fr.atesab.bot.BotConfig;
 import fr.atesab.bot.ServerConfig;
 import fr.atesab.bot.command.*;
 import fr.atesab.bot.console.Console;
-import fr.atesab.bot.game.Game;
-import fr.atesab.bot.game.HangmanGame;
-import fr.atesab.bot.game.MarienbadGame;
-import fr.atesab.bot.game.NumberFindGame;
-import fr.atesab.bot.game.TicTacToeGame;
+import fr.atesab.bot.game.*;
 import fr.atesab.bot.handler.*;
 import fr.atesab.bot.handler.tools.*;
 import fr.atesab.bot.utils.AudioProvider;
@@ -57,7 +53,7 @@ import sx.blah.discord.handle.obj.IUser;
 import sx.blah.discord.handle.obj.IVoiceChannel;
 
 public class BotServer {
-	public static final String BOT_VERSION = "1.5.4";
+	public static final String BOT_VERSION = "1.5.5";
 	public static final String BOT_AUTHOR = "ATE47";
 	public static final String BOT_NAME = "ATEDiBot";
 
@@ -130,7 +126,7 @@ public class BotServer {
 		return true;
 	}
 
-	public static String MD5(String md5) {
+	public static String md5(String md5) {
 		try {
 			java.security.MessageDigest md = java.security.MessageDigest.getInstance("MD5");
 			byte[] array = md.digest(md5.getBytes());
@@ -191,11 +187,11 @@ public class BotServer {
 
 	private Language lang;
 
-	private List<Account> accounts = new ArrayList<Account>();
+	private List<Account> accounts = new ArrayList<>();
 
-	private List<Command> commands = new ArrayList<Command>();
+	private List<Command> commands = new ArrayList<>();
 
-	private Set<Game> games = new HashSet<Game>();
+	private List<Game> games = new ArrayList<>();
 
 	public BotServer(int webPort, int apiPort, int webNumThreads, String configFolder) {
 		System.setProperty("file.encoding", "UTF-8");
@@ -204,7 +200,7 @@ public class BotServer {
 		this.webNumThreads = webNumThreads;
 		this.lang = new Language(configFolder);
 		// CREATE DEFAULT CONFIG
-		accounts.add(new Account("admin", "", "", new String[] { "admin" }, MD5("123456")));
+		accounts.add(new Account("admin", "", "", new String[] { "admin" }, md5("123456")));
 		defaultKickServerMessage = new ArrayList<String>();
 		defaultBanMessage = new ArrayList<String>();
 		defaultKickChannelMessage = new ArrayList<String>();
@@ -226,17 +222,19 @@ public class BotServer {
 				new SetPrefixCommand(), new TreeCommand(), new OlderCommand(), new HelpCommand(), new PartyCommand());
 
 		// REGISTER GAMES
-		registerGame(new TicTacToeGame(false), new TicTacToeGame(true), new NumberFindGame(50000), new MarienbadGame(),
-				new HangmanGame());
+		registerGame(new TicTacToeGame("ttt", TicTacToeGame.DEFAULT_MODE, 3, 3, 3, 2, 2),
+				new TicTacToeGame("ttti", TicTacToeGame.ICON_MODE, 3, 3, 3, 2, 2),
+				new TicTacToeGame("tttm", TicTacToeGame.DEFAULT_MODE, 10, 10, 4, 2, -1),
+				new TicTacToeGame("tttmi", TicTacToeGame.ICON_MODE, 10, 10, 4, 2, -1), new NumberFindGame(50000),
+				new MarienbadGame(), new HangmanGame(), new BattleshipGame());
 
 		servlet = new BotServlet(this, new LoginHandler("logo.png"), new PanelHandler(), "/bot");
 		servlet.registerContext("users.ap", new AccountsPanelHandler());
 		servlet.registerContext("usermod.ap", new AccountModHandler());
 		servlet.registerContext("config.ap", new ConfigPanelHandler());
 		ToolsHandler tools = new BotToolsHandler(this).registerTool(new ConfigServerHandler(),
-				AutoMessageHandler.getInstance(), AutoDeleteMessageHandler.getInstance(), UserModHandler.getInstance(),
-				GuildModHandler.getInstance(), new InfoToolHandler(), new MusicToolHandler(),
-				new LocalPermissionHandler());
+				AutoMessageHandler.getInstance(), AutoDeleteMessageHandler.getInstance(), new UserModHandler(),
+				new GuildModHandler(), new InfoToolHandler(), new MusicToolHandler(), new LocalPermissionHandler());
 		ToolsHandler apps = new AppsHandler(this).registerTool(new FileHandler(), new CommandListHandler());
 		ToolsHandler wconfig = new WebConfigHandler(this).registerTool(new BlogConfigHandler(),
 				new WorksConfigHandler(), new InfoConfigHandler());
@@ -379,7 +377,7 @@ public class BotServer {
 		return null;
 	}
 
-	public Set<Game> getGames() {
+	public List<Game> getGames() {
 		return games;
 	}
 
@@ -523,6 +521,7 @@ public class BotServer {
 	public void registerGame(Game... gams) {
 		for (Game game : gams)
 			games.add(game);
+		games.sort((o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName()));
 	}
 
 	public void removeSession(String sessid) {
@@ -617,27 +616,31 @@ public class BotServer {
 		if (perm == null)
 			return true;
 		String userid = String.valueOf(user.getLongID());
-		ArrayList<String> rolesid = new ArrayList<>();
+		Set<String> rolesid = new HashSet<>();
 		if (guild != null)
 			user.getRolesForGuild(guild).forEach(r -> rolesid.add(String.valueOf(r.getLongID())));
 		if (botInstance != null && guild != null) {
 			ServerConfig serverConfig = botInstance.getServerConfigById(guild.getLongID());
-			if (serverConfig != null) {
-				for (ServerPermission serverPermission : serverConfig.getRolePermissions())
-					for (String roleid : rolesid)
-						if (serverPermission.getIdentifier().equals(roleid) && serverPermission.hasPermission(perm))
-							return true;
-				for (ServerPermission serverPermission : serverConfig.getUserPermissions())
-					if (serverPermission.getIdentifier().equals(userid) && serverPermission.hasPermission(perm))
-						return true;
+			if (serverConfig != null && serverConfig.tools.contains(LocalPermissionHandler.TOOL_NAME)) {
+				for (ServerPermission serverPermission : serverConfig.getLocalPermissions())
+					for (String id : serverPermission.getIdentifier().split(";")) {
+						if (id.equals(userid) || rolesid.contains(userid)) {
+							if (serverPermission.hasPermission(perm))
+								return true;
+							break;
+						}
+					}
 			}
 		}
 		for (Account a : accounts) {
 			if (a.userId.equals(userid) && a.hasPerm(perm))
 				return true;
 			for (String s : rolesid)
-				if (a.groupId.equals(s) && a.hasPerm(perm))
-					return true;
+				if (a.groupId.equals(s)) {
+					if (a.hasPerm(perm))
+						return true;
+					break;
+				}
 		}
 		return false;
 	}

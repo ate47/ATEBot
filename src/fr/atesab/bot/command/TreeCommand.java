@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
-import java.util.OptionalInt;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -42,8 +41,7 @@ public class TreeCommand extends ASyncCommand {
 		}
 
 		int deep() {
-			OptionalInt i = subs.stream().mapToInt(Node::deep).max();
-			return 1 + (i.isPresent() ? i.getAsInt() : 0);
+			return 1 + subs.stream().mapToInt(Node::deep).max().orElse(0);
 		}
 
 		int length() {

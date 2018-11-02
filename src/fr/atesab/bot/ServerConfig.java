@@ -25,21 +25,20 @@ public class ServerConfig {
 	public List<String> tools = new ArrayList<String>();
 	public List<AutoMessageHandler.MessageElement> messages = new ArrayList<>();
 	public List<AutoMessageHandler.MessageElement> deleteMessages = new ArrayList<>();
-	public List<ServerPermission> userPermissions = new ArrayList<>();
-	public List<ServerPermission> rolePermissions = new ArrayList<>();
+	public List<ServerPermission> localPermissions = new ArrayList<>();
 	public String commandPrefix = DiscordListener.DEFAULT_COMMAND_PREFIX;
+
 	public ServerConfig(BotServer server) {
 		kickServerMessage = server.getDefaultKickServerMessage();
 		banMessage = server.getDefaultBanMessage();
 		kickChannelMessage = server.getDefaultKickChannelMessage();
 	}
+
 	public ConcurrentHashMap<Long, Long> getOriginBind() {
-		return originBind==null?(originBind=new ConcurrentHashMap<Long, Long>()):originBind;
+		return originBind == null ? (originBind = new ConcurrentHashMap<Long, Long>()) : originBind;
 	}
-	public List<ServerPermission> getRolePermissions() {
-		return rolePermissions==null?(rolePermissions=new ArrayList<>()):rolePermissions;
-	}
-	public List<ServerPermission> getUserPermissions() {
-		return userPermissions==null?(userPermissions=new ArrayList<>()):userPermissions;
+
+	public List<ServerPermission> getLocalPermissions() {
+		return localPermissions == null ? (localPermissions = new ArrayList<>()) : localPermissions;
 	}
 }

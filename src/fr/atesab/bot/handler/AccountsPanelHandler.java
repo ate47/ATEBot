@@ -205,7 +205,7 @@ public class AccountsPanelHandler extends WebHandler {
 			} else if(info.getGet().containsKey("a") && info.getGet().get("a").toString().toLowerCase().equals("mdp")) {
 				if(BotServer.mapContainKeys(info.getPost(), new String[] {"nw_nps","nw_nps2"})) {
 					if(info.getPost().get("nw_nps")!=null && info.getPost().get("nw_nps").equals(info.getPost().get("nw_nps2"))) {
-						u.hash = BotServer.MD5(info.getPost().get("nw_nps").toString());
+						u.hash = BotServer.md5(info.getPost().get("nw_nps").toString());
 						if(info.getAccount().equals(u)) info.setSession("log_ps", u.hash);
 					info.getBotServer().saveConfig();
 						notification = info.getBotServer().getLanguage("panel.users.msg.ps");
@@ -251,7 +251,7 @@ public class AccountsPanelHandler extends WebHandler {
 			if(BotServer.mapContainKeys(info.getPost(), new String[] {"nw_us","nw_ps","nw_ps2"})) {
 				if(info.getBotServer().getAccountByName(info.getPost().get("nw_us").toString())==null){
 					if(info.getPost().get("nw_ps")!=null && info.getPost().get("nw_ps2") !=null && info.getPost().get("nw_ps").toString().equals(info.getPost().get("nw_ps2").toString())) {
-						info.getBotServer().getAccounts().add(new Account(info.getPost().get("nw_us").toString(), "", "", new String[] {}, BotServer.MD5(info.getPost().get("nw_ps").toString())));
+						info.getBotServer().getAccounts().add(new Account(info.getPost().get("nw_us").toString(), "", "", new String[] {}, BotServer.md5(info.getPost().get("nw_ps").toString())));
 						info.getBotServer().saveConfig();
 						notification = info.getBotServer().getLanguage("panel.users.msg.create");
 					} else {

@@ -22,7 +22,7 @@ import sx.blah.discord.handle.obj.Permissions;
 import sx.blah.discord.util.MissingPermissionsException;
 
 public class GuildModHandler extends ToolHandler {
-	private static GuildModHandler instance;
+	public static final String TOOL_NAME = "guildmod";
 
 	public static <T> boolean arrayContainObject(T object, T[] array) {
 		for (T o1 : array) {
@@ -31,10 +31,6 @@ public class GuildModHandler extends ToolHandler {
 			}
 		}
 		return false;
-	}
-
-	public static GuildModHandler getInstance() {
-		return instance == null ? (instance = new GuildModHandler()) : instance;
 	}
 
 	public static String getPerm(WebInformation info, IRole r, String title) {
@@ -55,9 +51,6 @@ public class GuildModHandler extends ToolHandler {
 		}
 		return s + "\n<input type='submit' value='" + info.getBotServer().getLanguage("tools.guildmod.perm.save")
 				+ "' /></form></div>";
-	}
-
-	private GuildModHandler() {
 	}
 
 	public String handle(WebToolInformation info) throws IOException {
@@ -284,6 +277,6 @@ public class GuildModHandler extends ToolHandler {
 	}
 
 	public String toolName() {
-		return "guildmod";
+		return TOOL_NAME;
 	}
 }

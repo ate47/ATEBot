@@ -9,10 +9,10 @@ import fr.atesab.bot.WebInformation;
 public class AccountModHandler extends WebHandler {
 	public String handle(WebInformation info) throws IOException {
 		if(BotServer.mapContainNoEmptyKeys(info.getPost(), new String[] {"psu_mod_ps1","psu_mod_ps2","psu_mod_ps3"})) {
-			String pass1 = BotServer.MD5((String)info.getPost().get("psu_mod_ps1"));
+			String pass1 = BotServer.md5((String)info.getPost().get("psu_mod_ps1"));
 			if(info.getAccount().hash.equals(pass1)) {
-				String pass2 = BotServer.MD5((String)info.getPost().get("psu_mod_ps2"));
-				String pass3 = BotServer.MD5((String)info.getPost().get("psu_mod_ps3"));
+				String pass2 = BotServer.md5((String)info.getPost().get("psu_mod_ps2"));
+				String pass3 = BotServer.md5((String)info.getPost().get("psu_mod_ps3"));
 				if(pass2.equals(pass3)) {
 					info.getAccount().hash = pass2;
 					info.getSessions().put("log_ps", pass2);

@@ -38,8 +38,11 @@ public abstract class Command {
 	}
 
 	public static String getGameList(BotInstance botInstance) {
-		return botInstance.getServer().getGames().stream()
-				.map(g -> g.getName() + ": " + botInstance.getServer().getLanguage("game." + g.getName()))
+		return botInstance.getServer().getGames().stream().map(g -> g.getName() + ": "
+				+ botInstance.getServer().getLanguage("game." + g.getName()) + " ("
+				+ (g.neededPlayer() == g.maxPlayer() ? g.neededPlayer()
+						: (g.maxPlayer() < 0 ? ">" + g.neededPlayer() : (g.neededPlayer() + "-" + g.maxPlayer())))
+				+ " " + botInstance.getServer().getLanguage("game.player" + (g.neededPlayer() > 1 ? "s" : "")) + ")")
 				.collect(Collectors.joining("\n"));
 	}
 
@@ -131,18 +134,30 @@ public abstract class Command {
 		return elm;
 	}
 
+	/**
+	 * Command aliases
+	 */
 	public List<String> getAliases() {
 		return null;
 	}
 
+	/**
+	 * Command names
+	 */
 	public abstract String getName();
 
 	public String getUsage() {
 		return getName();
 	}
 
+	/**
+	 * Needed permission to use this command, <code>null</code> for none
+	 */
 	public abstract String neededPermission();
 
+	/**
+	 * Execute when an user with the {@link #neededPermission()} execute it
+	 */
 	public abstract boolean runCommand(MessageReceivedEvent event, String[] args, String message,
 			ServerConfig serverConfig, BotInstance botInstance);
 }

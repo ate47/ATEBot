@@ -5,9 +5,10 @@ import java.io.IOException;
 import fr.atesab.bot.WebToolInformation;
 
 public class LocalPermissionHandler extends ToolHandler {
+	public static final String TOOL_NAME = "localperm";
 	@Override
 	public String handle(WebToolInformation info) throws IOException {
-		String s = "";
+		String s = "test";
 		return s;
 	}
 	@Override
@@ -20,7 +21,7 @@ public class LocalPermissionHandler extends ToolHandler {
 	}
 	@Override
 	public String toolName() {
-		return "perm";
+		return TOOL_NAME;
 	}
 
 }

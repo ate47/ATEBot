@@ -6,7 +6,7 @@ import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public class NumberFindGame implements Game {
-	public static class NumberFindInstance extends GameInstance<NumberFindGame> {
+	public class NumberFindInstance extends GameInstance<NumberFindGame> {
 		private long start;
 		private int number;
 		private int numberTried = 0;
@@ -14,7 +14,7 @@ public class NumberFindGame implements Game {
 		public NumberFindInstance(BotServer server, NumberFindGame game, IUser[] users) {
 			super(server, game, users);
 			start = System.currentTimeMillis();
-			number = random.nextInt(game.bound) + 1;
+			number = random.nextInt(bound) + 1;
 		}
 
 		@Override
@@ -75,7 +75,11 @@ public class NumberFindGame implements Game {
 
 	@Override
 	public int neededPlayer() {
-		return -1;
+		return 1;
 	}
 
+	@Override
+	public int maxPlayer() {
+		return -1;
+	}
 }

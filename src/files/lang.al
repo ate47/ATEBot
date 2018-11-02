@@ -49,6 +49,7 @@ perm.null=Aucune permission requise
 
 noperm=Vous n'avez pas la permission de faire ceci.
 needperm=Il vous faut la permission %s
+cantPM=Impossible de MP %s
 
 group.panel=Administration
 group.tools=Bots
@@ -327,7 +328,10 @@ cmd.tree.unbind=%s ne sont plus liés
 
 ### Game ###
 game.badturn=C'est le tour de %s
+game.start=Debut du jeu
 game.stopgame=Fin du jeu
+game.player=Joueur
+game.players=Joueurs
 game.nag=Ce n'est pas un jeu
 game.notinagame=Vous n'êtes pas en jeu
 game.inagame=Vous êtes déjà en jeu
@@ -336,11 +340,15 @@ game.mat=Egalité
 game.badnumber=Il faut %s joueurs pour jouer
 game.wrongChannel=Vous n'êtes pas dans le bon salon. Merci de jouer dans %s
 
+# Tic Tac Toe
 game.ttt=Morpion
 game.ttti=Morpion (avec avatar)
+game.tttm=Morpion (Massif)
+game.tttmi=Morpion (Massif avec avatar)
 game.ttt.badplay=Cet emplacement est déjà pris
 game.ttt.infomode=Mode Informatif
 
+# Number find
 game.nfind=Juste nombre
 game.nfind.more=Plus
 game.nfind.less=Moins
@@ -348,9 +356,11 @@ game.nfind.find=Nombre trouvé en %s avec %s essais par %s
 game.nfind.loose=Le nombre était %s
 game.nfind.start=Un nombre a été selectionné au hasard entre 1 et %s, dîtes un nombre pour essayer de le trouver.
 
+# MarienBad
 game.marienbad=Marienbad
 game.marienbad.badline=Indiquer une ligne avec au moins une allumette
 
+# Hangman
 game.hangman=Pendu
 game.hangman.needSend=Le joueur %s doit envoyer le mot au bot par message privé.
 game.hangman.needSend.pm=Veuillez entrer un mot.
@@ -359,6 +369,31 @@ game.hangman.select=Début du jeu pour %s !
 game.hangman.loose=Vous avez perdu !
 game.hangman.win=Vous avez gagné !
 game.hangman.endMessage=Le mot était %s
+
+# BattleShip
+game.battleship=Bataille navale
+game.battleship.help=Aide
+game.battleship.help.do=Ecrivez %s pour de l'aide.
+game.battleship.help.command=Pour définir la position de votre bateau vous devez entrer la commande suivante: ::%s::Par exemple la commande: ::%s::va placer un bateau de type %s en %s dans la direction %s.
+game.battleship.init.nas=Ce n'est pas un bateau valide !
+game.battleship.init.nad=Ce n'est pas une direction valide !
+game.battleship.init.nal=Ce n'est pas une position valide !
+game.battleship.init.placed=Votre bateau a été placé.
+game.battleship.init.end=Tout vos bateaux sont placés, ecrivez %s pour confirmer.
+game.battleship.dir=Direction
+game.battleship.dirs=Directions
+game.battleship.dir.up=Haut
+game.battleship.dir.down=Bas
+game.battleship.dir.left=Gauche
+game.battleship.dir.right=Droite
+game.battleship.ship=Bateau
+game.battleship.ships=Bateaux
+game.battleship.ship.length=Longueur
+game.battleship.ship.carrier=Porte-avions
+game.battleship.ship.battleship=Croiseur
+game.battleship.ship.cruiser=Contre-torpilleur
+game.battleship.ship.submarine=Sous-marin
+game.battleship.ship.destroyer=Torpilleur
 
 ### tools ###
 tools=Outils du bot
@@ -553,4 +588,5 @@ tools.serverconfig=Configuration du serveur
 tools.serverconfig.save=Configuration du serveur sauvegardé
 
  ## LocalPermission ##
-tools.perm=Permissions local de serveur
+tools.localperm=Permissions local de serveur
+

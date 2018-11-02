@@ -16,7 +16,13 @@ public abstract class GameInstance<T extends Game> {
 	}
 
 	protected static final Random random = new Random();
+	/**
+	 * The game of this instance
+	 */
 	protected T game;
+	/**
+	 * Players of this instance
+	 */
 	protected IUser[] users;
 	protected boolean ended = false;
 	protected BotServer server;
@@ -27,10 +33,16 @@ public abstract class GameInstance<T extends Game> {
 		this.users = users;
 	}
 
+	/**
+	 * true if this user is a player of this instance
+	 */
 	public boolean containUser(IUser user) {
 		return containUser(user.getLongID());
 	}
 
+	/**
+	 * true a player of this instance have this id
+	 */
 	public boolean containUser(long userId) {
 		for (IUser u : users)
 			if (u.getLongID() == userId)
@@ -77,9 +89,22 @@ public abstract class GameInstance<T extends Game> {
 		}
 	}
 
+	/**
+	 * Call when the instance start
+	 */
 	public void init(IChannel channel) {
 	}
 
+	/**
+	 * Call when the instance stop
+	 * <p>
+	 * <code>winner >=0 && winner < users.length</code>
+	 * </p>
+	 * is a index in {@link #users}
+	 * <p>
+	 * <code>winner == -2</code> is a mat
+	 * </p>
+	 */
 	public void end(IChannel channel, int winner) {
 	}
 }

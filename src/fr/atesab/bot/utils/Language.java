@@ -36,10 +36,9 @@ public class Language {
 	}
 
 	public String getLanguage(String lang, Object... params) {
-		String s = this.langmap.getOrDefault(lang, lang);
-		for (int i = 0; i < params.length; i++) {
+		String s = this.langmap.getOrDefault(lang, lang).replace("::", "\n");
+		for (int i = 0; i < params.length; i++)
 			s = s.replaceFirst("%s", String.valueOf(params[i]));
-		}
 		return s;
 	}
 

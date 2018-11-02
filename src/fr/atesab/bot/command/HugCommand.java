@@ -86,8 +86,8 @@ public class HugCommand extends Command {
 						else if(i>0)s+=", ";
 						s+=usernames.get(i);
 					}
-					if(a==1) botInstance.sendMessage(event.getChannel(), ("* "+botInstance.getServer().getLanguage("cmd.hug.solo")+" *"), stream);
-					else if(a==2) botInstance.sendMessage(event.getChannel(),(("* "+botInstance.getServer().getLanguage("cmd.hug.sended", s)+" *")));
+					if(a==1) BotInstance.sendMessage(event.getChannel(), ("* "+botInstance.getServer().getLanguage("cmd.hug.solo")+" *"), stream);
+					else if(a==2) BotInstance.sendMessage(event.getChannel(),(("* "+botInstance.getServer().getLanguage("cmd.hug.sended", s)+" *")));
 					else event.getChannel().sendMessage(botInstance.getServer().getLanguage("cmd.hug.unknow"));
 				}
 			} else
