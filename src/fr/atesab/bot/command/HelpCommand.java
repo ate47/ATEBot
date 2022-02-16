@@ -24,7 +24,7 @@ public class HelpCommand extends Command {
 			BotInstance botInstance) {
 		if (args.length != 0)
 			return false;
-		botInstance
+		BotInstance
 				.sendMessage(event.getChannel(),
 						botInstance
 								.getServer().getCommands().stream().filter(

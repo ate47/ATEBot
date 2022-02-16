@@ -110,10 +110,10 @@ public class WebInformation {
 		}else if(BotServer.mapContainKeys(this.post, new String[]{"log_us","log_ps"})){
 			if(this.post.get("log_us")!=null && this.post.get("log_ps")!=null && this.servlet.accountExist(this.post.get("log_us").toString())
 					&& this.servlet.getAccountByName(this.post.get("log_us").toString())
-					.hash.equals(BotServer.MD5(this.post.get("log_ps").toString()))){
+					.hash.equals(BotServer.md5(this.post.get("log_ps").toString()))){
 				this.account = this.servlet.getAccountByName(this.post.get("log_us").toString());
 				setSession("log_us", this.post.get("log_us").toString());
-				setSession("log_ps", BotServer.MD5((String) this.post.get("log_ps")));
+				setSession("log_ps", BotServer.md5((String) this.post.get("log_ps")));
 				connect=true;
 			} else connect=false;
 		} else connect=false;

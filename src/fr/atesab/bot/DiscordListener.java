@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager;
@@ -117,20 +116,22 @@ public class DiscordListener {
 
 			IMessage m = event.getMessage();
 			String message = m.getContent();
-			List<Answer> ans = new ArrayList<Answer>();
+			List<Answer> ans = new ArrayList<>();
 			/*
 			 * Run commands
 			 */
 			if (message.startsWith(commandPrefix)
 					&& ((config != null && config.tools.contains(USE_COMMAND_APP)) || config == null)) {
-				message = message.substring(commandPrefix.length());
+				message = message.substring(commandPrefix.length()).trim();
 				String[] els = message.split(" ");
 				Command cmd = botInstance.getServer().getCommandByName(els[0]);
 				if (cmd != null) {
 					String[] args = new String[els.length - 1];
 					System.arraycopy(els, 1, args, 0, args.length); // create args values
 
-					// check if user has permission
+					/*
+					 * check if user has permission
+					 */
 					if (botInstance.getServer().userHasPerm(event.getAuthor(), event.getGuild(), cmd.neededPermission(),
 							botInstance)) {
 						if (!cmd.runCommand(event, args, message, config, botInstance))
@@ -157,10 +158,10 @@ public class DiscordListener {
 						for (MessageElement msg : config.messages)
 							if (msg.match(message)) {
 								String[] answer = msg.answer.split("::");
-								String aswr = answer.length != 0 ? answer[new Random().nextInt(answer.length)] : "";
+								String aswr = answer.length != 0 ? answer[Command.random.nextInt(answer.length)] : "";
 								String[] file = msg.file.split("::");
-								File f = new File(
-										"atebot/" + (file.length != 0 ? file[new Random().nextInt(file.length)] : ""));
+								File f = new File("atebot/"
+										+ (file.length != 0 ? file[Command.random.nextInt(file.length)] : ""));
 								if (f.exists() && !f.isDirectory())
 									ans.add(new Answer(aswr, f));
 								else

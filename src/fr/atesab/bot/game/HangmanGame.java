@@ -45,9 +45,9 @@ public class HangmanGame implements Game {
 				s = server.getLanguage("game.hangman.loose");
 				break;
 			case -4: // win for all
-				s = server.getLanguage("game.hangman.loose");
+				s = server.getLanguage("game.hangman.win");
 				break;
-			default:
+			default: // stop or bad use
 				s = !channel.equals(mainChannel) ? server.getLanguage("game.stopgame") : "";
 				break;
 			}
@@ -72,12 +72,13 @@ public class HangmanGame implements Game {
 						showText[k * 2] = text[k];
 						showText[k * 2 + 1] = ' ';
 						phase = 0;
-						mainChannel.sendMessage(server.getLanguage("game.hangman.select",
-								Arrays.stream(users).map(IUser::mention).collect(Collectors.joining(", "))));
+						mainChannel.sendMessage(server.getLanguage("game.hangman.select", Arrays.stream(users)
+								.filter(u -> !u.equals(main)).map(IUser::mention).collect(Collectors.joining(", "))));
 						showGame();
 					} else
 						channel.sendMessage(server.getLanguage("game.hangman.needSend.pm.error"));
 				}
+				return 0;
 			} else {
 				if (!channel.equals(mainChannel) || main.equals(player))
 					return 0;
@@ -93,7 +94,6 @@ public class HangmanGame implements Game {
 							break ms;
 						}
 					win = true;
-					return -3;
 				} else if (message.length() == 1) {
 					/*
 					 * Check if this letter is between a and z, not already played and in text
@@ -135,9 +135,9 @@ public class HangmanGame implements Game {
 			graphics.setFont(new Font(graphics.getFont().getFontName(), Font.BOLD, 25));
 			graphics.setStroke(new BasicStroke(5));
 			if (phase > 0) {
-				graphics.drawLine(60, 570, 240, 570); // bottom
+				graphics.drawLine(60, 560, 240, 560); // bottom
 				if (phase > 1) {
-					graphics.drawLine(150, 570, 150, 120); // main
+					graphics.drawLine(150, 560, 150, 120); // main
 					if (phase > 2) {
 						graphics.drawLine(150, 120, 480, 120); // top
 						if (phase > 3) {
@@ -168,7 +168,7 @@ public class HangmanGame implements Game {
 					}
 				}
 			}
-			Command.drawCenteredString(new String(phase > 10 || win ? text : showText), width / 2, 601, graphics);
+			Command.drawCenteredString(new String(phase > 10 || win ? text : showText), width / 2, 595, graphics);
 			try {
 				mainChannel.sendFile("", Command.streamFromImage(bufferedImage), "show.png");
 			} catch (IOException e) {
@@ -177,12 +177,12 @@ public class HangmanGame implements Game {
 		}
 
 		protected boolean win() {
-			for (int i = 0; i < text.length; i++) {
-				char c = text[i];
-				if (!(c == ' ' || c == '-') && !playedChars.contains(c))
+			if (win)
+				return true;
+			for (int i = 0; i < text.length; i++)
+				if (showText[i * 2] != text[i])
 					return false;
-			}
-			return true;
+			return win = true;
 		}
 	}
 

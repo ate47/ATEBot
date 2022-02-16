@@ -14,7 +14,7 @@ import sx.blah.discord.handle.obj.IChannel;
 import sx.blah.discord.handle.obj.IUser;
 
 public class BotInstance {
-	private static final long TIME_BETWEEN_SEND = 500L;
+	public static final long TIME_BETWEEN_SEND = 500L;
 	private IDiscordClient client;
 	private BotConfig config;
 	private DiscordListener listener;
@@ -61,6 +61,24 @@ public class BotInstance {
 		return getGameInstanceByPlayer(player.getLongID());
 	}
 
+	public boolean startGame(Game g, IChannel channel, List<IUser> players) {
+		if (
+		// check if player count is between Game#neededPlayer and Game#maxPlayer (finite
+		// players size)
+		(g.maxPlayer() >= 0 && players.size() <= g.maxPlayer() && players.size() >= g.neededPlayer())
+				// check if player count is greater than Game#neededPlayer (Infinite players
+				// size)
+				|| (g.maxPlayer() < 0 && players.size() >= g.neededPlayer())) {
+			GameInstance<?> gameInstance = g.getInstance(getServer(), players.toArray(new IUser[players.size()]));
+			startGame(gameInstance, channel);
+			return true;
+		} else {
+			sendMessage(channel, getServer().getLanguage("game.badnumber",
+					g.neededPlayer() + (g.maxPlayer() != -1 ? "" : ("-" + g.maxPlayer()))));
+			return false;
+		}
+	}
+
 	public void startGame(GameInstance<?> instance, IChannel channel) {
 		getGameInstances().add(instance);
 		instance.init(channel);
@@ -97,26 +115,26 @@ public class BotInstance {
 		return null;
 	}
 
-	public void sendMessage(IChannel channel, String msg) {
+	public static void sendMessage(IChannel channel, String msg) {
 		sendMessage(channel, msg, null, "\n");
 	}
 
-	public void sendMessage(IChannel channel, String msg, String separator) {
+	public static void sendMessage(IChannel channel, String msg, String separator) {
 		sendMessage(channel, msg, null, separator);
 	}
 
-	public void sendMessage(IChannel channel, String msg, InputStream stream) {
+	public static void sendMessage(IChannel channel, String msg, InputStream stream) {
 		sendMessage(channel, msg, stream, "\n");
 	}
 
-	private void sendBlock(IChannel channel, String msg, InputStream stream) {
+	private static void sendBlock(IChannel channel, String msg, InputStream stream) {
 		if (stream != null)
 			channel.sendFile(msg, stream, "unknow");
 		else
 			channel.sendMessage(msg);
 	}
 
-	public void sendMessage(IChannel channel, String msg, InputStream stream, String separator) {
+	public static void sendMessage(IChannel channel, String msg, InputStream stream, String separator) {
 		if (msg.length() < 1 && stream == null)
 			return;
 		if (msg.length() < 2000) {
